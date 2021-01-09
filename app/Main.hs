@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import GuidedFilter
 
 main :: IO ()
 main = compileAllShaders
