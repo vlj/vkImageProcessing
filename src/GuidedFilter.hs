@@ -127,6 +127,8 @@ guidedFilterPass1 = Module $ entryPoint @"main" @Compute do
 ----------------------------------------------------------
 -- Second implem shaders
 
+type NaiveRowSumDefBlockSize = 32
+
 type NaiveRowSumDefs =
   '[ "ubo"  ':-> Uniform '[ DescriptorSet 1, Binding 0 ]
                     ( Struct
@@ -138,25 +140,31 @@ type NaiveRowSumDefs =
                     ( R32 F )                    
     , "output"  ':-> Image2D '[ DescriptorSet 0, Binding 1 ]
                     ( R32 F )
-    , "main" ':-> EntryPoint '[ LocalSize 512 1 1 ]
+    , "main" ':-> EntryPoint '[ LocalSize NaiveRowSumDefBlockSize NaiveRowSumDefBlockSize 1 ]
                     Compute
    ]
 
 naiveRowSumShader :: Module NaiveRowSumDefs
 naiveRowSumShader = Module $ entryPoint @"main" @Compute do
-    ~(Vec3 i_x _ _) <- get @"gl_GlobalInvocationID"
+    let subgroupSize = cast (natVal (Proxy @NaiveRowSumDefBlockSize))
+    ~(Vec3 i_x _ _) <- get @"gl_WorkgroupSize"
+    _ <- def @"lineindex" @R =<< ((+) $ i_x * subgroupSize)<<$>> get @"gl_SubgroupID"
 
-    _ <- def @"i" @RW @Word32 0
+    _ <- def @"startingindex" @RW @Word32 0
     width <- use @(Name "ubo" :.: Name "width")
     height <- use @(Name "ubo" :.: Name "height")
 
     _ <- def @"acc" @RW @Float 0
-    while (get @"i" < pure width) do
-      i <- get @"i"
-      texel <- imageRead @"input" (Vec2 i_x i)
-      modify @"acc" (+ texel)
-      imageWrite @"output" (Vec2 i_x i) =<< get @"acc"
-      modify @"i" (+1)
+    while (get @"startingindex" < pure width) do
+      lineindex <- get @"lineindex"
+      subgroupInvocationID <- get @"gl_SubgroupInvocationID"
+      coordinate <- (\x -> Vec2 lineindex (x + subgroupInvocationID)) <<$>> get @"startingindex"
+      texel <- imageRead @"input" coordinate
+      accumulatedLocalTexel <- nonUniformGroupAdd @Subgroup @InclusiveScan texel
+      imageWrite @"output" coordinate =<< (+accumulatedLocalTexel) <<$>> get @"acc"
+      accumulatedAllTexel <- nonUniformGroupAdd @Subgroup @Reduce texel
+      modify @"acc" (+ accumulatedAllTexel)
+      modify @"startingindex" (+subgroupSize)
 
 type NaiveColumnSumDefs =
   '[ "ubo"  ':-> Uniform '[ DescriptorSet 1, Binding 0 ]

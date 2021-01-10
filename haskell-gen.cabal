@@ -30,7 +30,7 @@ library
       Common
     -- , FirstImplem
     , GuidedFilter
-    , TestShaders
+    -- , TestShaders
   other-modules:
       Paths_haskell_gen
   hs-source-dirs:
