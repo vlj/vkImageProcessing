@@ -30,6 +30,7 @@ library
       Common
     -- , FirstImplem
     , GuidedFilter
+    , SimpleIntegralShader
     -- , TestShaders
   other-modules:
       Paths_haskell_gen
@@ -53,4 +54,6 @@ executable haskell-gen-exe
   build-depends:
       base >=4.7 && <5
     , haskell-gen
+    , fir
+    , filepath
   default-language: Haskell2010
