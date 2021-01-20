@@ -80,6 +80,7 @@ naiveRowSumShader = Module $ entryPoint @"main" @Compute do
     _ <- def @"startingindex" @RW @Word32 0
     width <- use @(Name "ubo" :.: Name "width")
     height <- use @(Name "ubo" :.: Name "height")
+    w <- imageSize @"input" @(V 2 Word32)
 
     _ <- def @"acc" @RW @Float 0
     while (get @"startingindex" < pure width) do

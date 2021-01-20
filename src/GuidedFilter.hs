@@ -85,10 +85,16 @@ type GuidedFilterPass1ComputeDef =
                     Compute
    ]
 
-
 pictureAndSquare :: forall (blockEdge :: Nat) (s::ProgramState) . (_) =>
+  Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))
+pictureAndSquare x y = locally do
+    value <- imageRead @"input" ( Vec2 x y )
+    return $ Vec2 value $ value * value
+
+
+pictureAndSquareToShared :: forall (blockEdge :: Nat) (s::ProgramState) . (_) =>
   Code Int32 -> Code Int32 -> Program s s (Code ())
-pictureAndSquare  i_groupIDx i_groupIDy = locally do
+pictureAndSquareToShared  i_groupIDx i_groupIDy = locally do
     ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
     let blockEdgeVal = cast (natVal (Proxy @blockEdge))
     let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))
@@ -120,7 +126,7 @@ writeValAndSquareToRowReducedMatrix i_groupIDx i_groupIDy columnIndex  (Vec2 i i
 
 guidedFilterPass1 :: Module GuidedFilterPass1ComputeDef
 guidedFilterPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize (pictureAndSquare @FullSize) (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
+  integralPass1Shader @"sharedVec2" @FullSize (pictureAndSquareToShared @FullSize) (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
 
 
 
@@ -203,7 +209,7 @@ colReducedMatrixCollectorV2 ix iy = locally do
 
 guidedFilterPass2 :: Module GuidedFilterPass2ComputeDef
 guidedFilterPass2 = Module $ entryPoint @"main" @Compute do
-  imageIntegralPass2Shader @"sharedVec2" @FullSize (pictureAndSquare @FullSize) (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"outputMean" @"outputSquaredMean") getV2Zero
+  imageIntegralPass2Shader @"sharedVec2" @FullSize (pictureAndSquareToShared @FullSize) (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"outputMean" @"outputSquaredMean") getV2Zero
 
 ------------------------------------------------
 -- A and B
