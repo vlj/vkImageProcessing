@@ -78,9 +78,7 @@ naiveRowSumShader = Module $ entryPoint @"main" @Compute do
     _ <- def @"lineindex" @R =<< ((+) $ i_x * subgroupSize)<<$>> get @"gl_SubgroupID"
 
     _ <- def @"startingindex" @RW @Word32 0
-    width <- use @(Name "ubo" :.: Name "width")
-    height <- use @(Name "ubo" :.: Name "height")
-    w <- imageSize @"input" @(V 2 Word32)
+    ~(Vec2 width height) <- imageSize @"input" @(V 2 Word32)
 
     _ <- def @"acc" @RW @Float 0
     while (get @"startingindex" < pure width) do
@@ -116,8 +114,7 @@ naiveColumnSumShader = Module $ entryPoint @"main" @Compute do
     colindex <- def @"colindex" @R =<< ((+) $ i_x * subgroupSize)<<$>> get @"gl_SubgroupID"
 
     _ <- def @"startindex" @RW @Word32 0
-    width <- use @(Name "ubo" :.: Name "width")
-    height <- use @(Name "ubo" :.: Name "height")
+    ~(Vec2 width height) <- imageSize @"input" @(V 2 Word32)
 
     _ <- def @"acc" @RW @Float 0
     while (get @"startindex" < pure height) do
