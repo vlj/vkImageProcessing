@@ -58,8 +58,8 @@ blockedSumLoop :: forall (blockSize::Nat) (i :: ProgramState). (KnownNat  blockS
 blockedSumLoop dimensionLimitSelect coordinateBuilder =
   locally do
     let subgroupSize = cast (natVal (Proxy @blockSize))
-    ~(Vec3 i_x i_y _) <- get @"gl_WorkgroupID"
-    _ <- def @"subgrouplane" @R =<< ((+) $ i_x * subgroupSize)<<$>> get @"gl_SubgroupID"
+    ~(Vec3 concurrentlaneid _ _) <- get @"gl_WorkgroupID"
+    _ <- def @"subgrouplane" @R =<< ((+) $ concurrentlaneid * subgroupSize)<<$>> get @"gl_SubgroupID"
     _ <- def @"startingindex" @RW @Word32 0
     _ <- def @"acc" @RW @Float 0
     dimensionLimit <- dimensionLimitSelect <<$>> imageSize @"input" @(V 2 Word32)
@@ -76,13 +76,8 @@ blockedSumLoop dimensionLimitSelect coordinateBuilder =
 type NaiveRowSumDefBlockSize = 32
 
 type NaiveRowSumDefs =
-  '[ "ubo"  ':-> Uniform '[ DescriptorSet 1, Binding 0 ]
-                    ( Struct
-                       '[ "line" ':-> Int32,
-                        "width" ':-> Word32,
-                        "height" ':-> Word32 ]
-                    )
-    , "input"  ':-> Image2D '[ DescriptorSet 0, Binding 0 ]
+  '[
+      "input"  ':-> Image2D '[ DescriptorSet 0, Binding 0 ]
                     ( R32 F )                    
     , "output"  ':-> Image2D '[ DescriptorSet 0, Binding 1 ]
                     ( R32 F )
