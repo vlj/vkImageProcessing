@@ -17,6 +17,7 @@ module Main where
 
 import SimpleIntegralShader
 import GuidedFilter
+import Prelude
 
 import Control.Monad
   ( void )
@@ -34,14 +35,15 @@ import FIR
 
 
 compileComputeShader :: forall a. (_) => Module a -> FilePath -> IO ( )
-compileComputeShader shader path = void $ compileTo path [] shader
+compileComputeShader shader path =
+  (show <$> (compileTo path [] shader)) Prelude.>>= Prelude.putStrLn
 
 compileAllShaders :: FilePath -> IO ()
 compileAllShaders shaderDir = sequence_
   [
     compileComputeShader guidedFilterPass1 (shaderDir </> "guidedFilterPass1.spv"),
-    compileComputeShader naiveRowSumShader (shaderDir </> "test_naiveHorizontalSumShader.spv"),
-    compileComputeShader naiveColumnSumShader (shaderDir </> "test_naiveVerticalSumShader.spv"),
+    compileComputeShader naiveHorizontalInclusiveScan (shaderDir </> "naiveHorizontalInclusiveScan.spv"),
+    compileComputeShader naiveVerticalInclusiveScan (shaderDir </> "naiveVerticalInclusiveScan.spv"),
     compileComputeShader guidedFilterPass2 (shaderDir </> "guidedFilterPass2.spv"),
     compileComputeShader meanAandBPass1 (shaderDir </> "meanAandBPass1.spv"),
     compileComputeShader meanAandBPass2 (shaderDir </> "meanAandBPass2.spv"),

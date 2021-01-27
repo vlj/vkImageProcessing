@@ -13,7 +13,7 @@
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleInstances   #-}
 
-module SimpleIntegralShader where
+module SimpleIntegralShader(naiveHorizontalInclusiveScan, naiveVerticalInclusiveScan) where
 
 -- base
 import qualified Prelude
@@ -23,8 +23,6 @@ import Control.Monad
   ( void )
 import Data.Maybe
   ( fromJust )
-import GHC.TypeLits
-  ( KnownNat )
 
 -- filepath
 import System.FilePath
@@ -52,7 +50,28 @@ import GHC.TypeLits
 import Data.Foldable
 
 import Common
---import FirstImplem
+
+-- Given a 2D image "input", sum over one dimension.
+-- dimensionLimitSelect returns how much elements constitues a lane given an image size.
+-- coordinateBuilder x y returns the 2D coordinate in input for the y-th element of the x-th lane.
+blockedSumLoop :: forall (blockSize::Nat) (i :: ProgramState). (KnownNat  blockSize, _) => (Code (V 2 Word32) -> Code Word32) -> (Code Word32 -> Code Word32 -> Code (V 2 Word32)) -> Program i i (Code ())
+blockedSumLoop dimensionLimitSelect coordinateBuilder =
+  locally do
+    let subgroupSize = cast (natVal (Proxy @blockSize))
+    ~(Vec3 i_x i_y _) <- get @"gl_WorkgroupID"
+    _ <- def @"subgrouplane" @R =<< ((+) $ i_x * subgroupSize)<<$>> get @"gl_SubgroupID"
+    _ <- def @"startingindex" @RW @Word32 0
+    _ <- def @"acc" @RW @Float 0
+    dimensionLimit <- dimensionLimitSelect <<$>> imageSize @"input" @(V 2 Word32)
+
+    while (get @"startingindex" < pure dimensionLimit) do
+      let currentIndex = (+) <<$>> get @"startingindex" <<*>> get @"gl_SubgroupInvocationID"
+      coordinate <- coordinateBuilder <<$>> get @"subgrouplane" <<*>> currentIndex
+      texel <- imageRead @"input" coordinate
+      
+      imageWrite @"output" coordinate =<< (+) <<$>> get @"acc" <<*>> groupAdd @Subgroup @InclusiveScan texel
+      modify @"acc" =<< (+) <<$>> groupAdd @Subgroup @Reduce texel
+      modify @"startingindex" (+subgroupSize)
 
 type NaiveRowSumDefBlockSize = 32
 
@@ -71,26 +90,10 @@ type NaiveRowSumDefs =
                     Compute
    ]
 
-naiveRowSumShader :: Module NaiveRowSumDefs
-naiveRowSumShader = Module $ entryPoint @"main" @Compute do
-    let subgroupSize = cast (natVal (Proxy @NaiveRowSumDefBlockSize))
-    ~(Vec3 i_x _ _) <- get @"gl_WorkgroupID"
-    _ <- def @"lineindex" @R =<< ((+) $ i_x * subgroupSize)<<$>> get @"gl_SubgroupID"
-
-    _ <- def @"startingindex" @RW @Word32 0
-    ~(Vec2 width height) <- imageSize @"input" @(V 2 Word32)
-
-    _ <- def @"acc" @RW @Float 0
-    while (get @"startingindex" < pure width) do
-      lineindex <- get @"lineindex"
-      subgroupInvocationID <- get @"gl_SubgroupInvocationID"
-      coordinate <- (\x -> Vec2 lineindex (x + subgroupInvocationID)) <<$>> get @"startingindex"
-      texel <- imageRead @"input" coordinate
-      accumulatedLocalTexel <- nonUniformGroupAdd @Subgroup @InclusiveScan texel
-      imageWrite @"output" coordinate =<< (+accumulatedLocalTexel) <<$>> get @"acc"
-      accumulatedAllTexel <- nonUniformGroupAdd @Subgroup @Reduce texel
-      modify @"acc" (+ accumulatedAllTexel)
-      modify @"startingindex" (+subgroupSize)
+-- Inclusive scan over the horizontal axis of an image
+naiveHorizontalInclusiveScan :: Module NaiveRowSumDefs
+naiveHorizontalInclusiveScan = Module $ entryPoint @"main" @Compute do
+  blockedSumLoop @NaiveRowSumDefBlockSize (\(Vec2 x y) -> x) Vec2
 
 type NaiveColumnSumDefs =
   '[ "ubo"  ':-> Uniform '[ DescriptorSet 1, Binding 0 ]
@@ -107,24 +110,9 @@ type NaiveColumnSumDefs =
                     Compute
    ]
 
-naiveColumnSumShader :: Module NaiveColumnSumDefs
-naiveColumnSumShader = Module $ entryPoint @"main" @Compute do
-    ~(Vec3 i_x _ _) <- get @"gl_WorkgroupID"
-    let subgroupSize = 32
-    colindex <- def @"colindex" @R =<< ((+) $ i_x * subgroupSize)<<$>> get @"gl_SubgroupID"
 
-    _ <- def @"startindex" @RW @Word32 0
-    ~(Vec2 width height) <- imageSize @"input" @(V 2 Word32)
-
-    _ <- def @"acc" @RW @Float 0
-    while (get @"startindex" < pure height) do
-      startindex <- get @"startindex"
-      readindex <- (+startindex) <<$>> get @"gl_SubgroupInvocationID"
-      let coordinate = (Vec2 readindex colindex)
-      texel <- imageRead @"input" coordinate
-      acc <- get @"acc"
-      imageWrite @"output" coordinate =<< (+acc) <<$>> nonUniformGroupAdd @Subgroup @InclusiveScan texel
-      accumulatedAllTexel <- nonUniformGroupAdd @Subgroup @Reduce texel      
-      modify @"acc" (+ accumulatedAllTexel)
-      modify @"startindex" (+subgroupSize)
+-- Inclusive scan over the vertical axis of an image
+naiveVerticalInclusiveScan :: Module NaiveColumnSumDefs
+naiveVerticalInclusiveScan = Module $ entryPoint @"main" @Compute do
+  blockedSumLoop @NaiveRowSumDefBlockSize (\(Vec2 x y) -> x) (flip Vec2)
 
