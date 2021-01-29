@@ -309,10 +309,17 @@ inputToShared inputImageGetter i_groupIDx i_groupIDy = locally do
     assign @(Name sharedMem :.: AnIndex Word32) idxp16 =<< (inputImageGetter (i_gx + halfBlockEdgeVal2) i_gy)
     controlBarrier Workgroup Nothing
 
+
+class ZeroGetter a where
+  initialVal :: Code a
+
+instance ZeroGetter (V 2 Float ) where
+  initialVal = (Vec2 0 0)    
+
 getLineSum2 :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s0 :: ProgramState). (Summer a, ( _ ))
   => (Code Word32 -> Code Word32 -> Code Word32) ->
-     Code Word32 -> Code a -> Program s0 s0 (Code a)
-getLineSum2 index2dTo1d line initialVal = locally do
+     Code Word32 -> Program s0 s0 (Code a)
+getLineSum2 index2dTo1d line = locally do
     _ <- def @"i" @RW @Word32 0
     acc <- def @"acc" @RW initialVal
     while (get @"i" < cast (natVal (Proxy @blockEdge))) do
@@ -325,23 +332,22 @@ getLineSum2 index2dTo1d line initialVal = locally do
 
 integralPass1Shader :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState) . (_) =>
   (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
-  Code a ->
   (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s s (Code ())) ->
   (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s s (Code ())) ->
   Program s s (Code ())
-integralPass1Shader loadInput initialVal writeToColumnReducedMatrix writeToRowReducedMatrix = locally do
+integralPass1Shader loadInput writeToColumnReducedMatrix writeToRowReducedMatrix = locally do
     ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
     ~(Vec3 i_groupIDx i_groupIDy _) <- get @"gl_WorkgroupID"
 
     inputToShared @blockEdge @sharedName loadInput (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
     when (i_x == 0) do
-      horizontalSum <- getLineSum2 @sharedName @blockEdge (index2dTo1d @blockEdge) i_y initialVal
+      horizontalSum <- getLineSum2 @sharedName @blockEdge (index2dTo1d @blockEdge) i_y
       writeToColumnReducedMatrix i_groupIDx i_groupIDy i_y horizontalSum
     
     controlBarrier Workgroup Nothing
 
     when (i_x == 0) do    
-      verticalSum <- getLineSum2 @sharedName @blockEdge (flip (index2dTo1d @blockEdge)) i_y initialVal
+      verticalSum <- getLineSum2 @sharedName @blockEdge (flip (index2dTo1d @blockEdge)) i_y
       writeToRowReducedMatrix i_groupIDx i_groupIDy i_y verticalSum
 
 

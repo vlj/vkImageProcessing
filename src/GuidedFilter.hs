@@ -89,7 +89,7 @@ writeValAndSquareToRowReducedMatrix i_groupIDx i_groupIDy columnIndex  (Vec2 i i
 
 guidedFilterPass1 :: Module GuidedFilterPass1ComputeDef
 guidedFilterPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize pictureAndSquare (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
+  integralPass1Shader @"sharedVec2" @FullSize pictureAndSquare (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
 
 
 ----------------------------------------------------------
@@ -217,7 +217,7 @@ fillAandBfromIsquaredI i_gx i_gy = locally do
 
 meanAandBPass1 :: Module IntegralAandBPass1ComputeDef
 meanAandBPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize fillAandBfromIsquaredI (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"AReducedMatrix" @"BRowReducedMatrix")
+  integralPass1Shader @"sharedVec2" @FullSize fillAandBfromIsquaredI (writeValAndSquareToColumnReducedMatrixes @FullSize @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"AReducedMatrix" @"BRowReducedMatrix")
 
 
 
