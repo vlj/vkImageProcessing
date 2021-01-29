@@ -12,8 +12,14 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleInstances   #-}
-
-module Common where
+module Common
+  ( cast,
+    index2dTo1d,
+    integralPass1SharedMem,
+    imageIntegralPass2Shader,
+    average,
+  )
+where
 
 -- base
 import qualified Prelude
@@ -330,12 +336,27 @@ getLineSum2 index2dTo1d line = locally do
     acc <- get @"acc"
     return acc
 
-integralPass1Shader :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState) . (_) =>
+
+-- Integral image algorithm based on "A fast integral image generation algorithm on GPUs" by Dang and al.
+-- Integral image is a 5 step process:
+-- - Compute row sum and column sum of every block and put it into "reduced rows" and "reduced cols" image.
+-- - Inclusive scan of reduced row image.
+-- - Inclusive scan of reduced col image.
+-- - Inclusive scan of the inclusively scanned reduced col image.
+-- - Last step do inclusive scan of every block, adding the col and row offset from the inclusively scanned row and col image.
+
+-- integralPass1* takes 3 functions as argument:
+-- - loadInput which loads the content of the input image.
+-- - writeToColumnReducedMatrix which write a row to the column reduced image.
+-- - writeToRowReducedMatrix which write a row to the row reduced image.
+
+-- Implementation of the first pass of the algorithm, uses shared memory
+integralPass1SharedMem :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState) . (_) =>
   (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
   (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s s (Code ())) ->
   (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s s (Code ())) ->
   Program s s (Code ())
-integralPass1Shader loadInput writeToColumnReducedMatrix writeToRowReducedMatrix = locally do
+integralPass1SharedMem loadInput writeToColumnReducedMatrix writeToRowReducedMatrix = locally do
     ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
     ~(Vec3 i_groupIDx i_groupIDy _) <- get @"gl_WorkgroupID"
 

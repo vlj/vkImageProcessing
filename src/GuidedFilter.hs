@@ -29,12 +29,11 @@ import Math.Linear
 
 
 import GHC.TypeLits ( Nat, Symbol, Div, natVal )
-import Data.Foldable
 
 import Common
     ( cast,
       index2dTo1d,
-      integralPass1Shader,
+      integralPass1SharedMem,
       imageIntegralPass2Shader,
       average )
 
@@ -89,7 +88,7 @@ writeValAndSquareToRowReducedMatrix i_groupIDx i_groupIDy columnIndex  (Vec2 i i
 
 guidedFilterPass1 :: Module GuidedFilterPass1ComputeDef
 guidedFilterPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize pictureAndSquare (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
+  integralPass1SharedMem @"sharedVec2" @FullSize pictureAndSquare (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
 
 
 ----------------------------------------------------------
@@ -217,7 +216,7 @@ fillAandBfromIsquaredI i_gx i_gy = locally do
 
 meanAandBPass1 :: Module IntegralAandBPass1ComputeDef
 meanAandBPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize fillAandBfromIsquaredI (writeValAndSquareToColumnReducedMatrixes @FullSize @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"AReducedMatrix" @"BRowReducedMatrix")
+  integralPass1SharedMem @"sharedVec2" @FullSize fillAandBfromIsquaredI (writeValAndSquareToColumnReducedMatrixes @FullSize @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"AReducedMatrix" @"BRowReducedMatrix")
 
 
 

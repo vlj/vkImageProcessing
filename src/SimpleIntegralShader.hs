@@ -37,7 +37,7 @@ import Data.Text.Short
   ( ShortText )
 
 
-import Data.Proxy  
+import Data.Proxy ( Proxy(Proxy) )  
 
 -- fir
 import FIR
@@ -45,11 +45,10 @@ import FIR
 import Math.Linear
 
 
-import GHC.TypeLits
+import GHC.TypeLits ( KnownNat, Nat, natVal )
 
-import Data.Foldable
 
-import Common
+import Common ( cast )
 
 -- Given a 2D image "input", sum over one dimension.
 -- dimensionLimitSelect returns how much elements constitues a lane given an image size.
