@@ -92,22 +92,22 @@ pictureAndSquare x y = locally do
     return $ Vec2 value $ value * value
 
 
-pictureAndSquareToShared :: forall (blockEdge :: Nat) (s::ProgramState) . (_) =>
+inputToShared :: forall (blockEdge :: Nat) (sharedMem :: Symbol) (s::ProgramState) . (_) =>
+  (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
   Code Int32 -> Code Int32 -> Program s s (Code ())
-pictureAndSquareToShared  i_groupIDx i_groupIDy = locally do
+inputToShared inputImageGetter i_groupIDx i_groupIDy = locally do
     ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
     let blockEdgeVal = cast (natVal (Proxy @blockEdge))
     let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))
     let halfBlockEdgeVal2 = cast (natVal (Proxy @(Div blockEdge 2)))
+    
     let i_gx = blockEdgeVal * i_groupIDx + fromIntegral i_x
     let i_gy = blockEdgeVal * i_groupIDy + fromIntegral i_y
     let idx = index2dTo1d @blockEdge i_x i_y
     let idxp16 = index2dTo1d @blockEdge (i_x + halfBlockEdgeVal) i_y
 
-    value <- imageRead @"input" ( Vec2 i_gx i_gy )
-    assign @(Name "sharedVec2" :.: AnIndex Word32) idx $ Vec2 value (value * value)
-    value2 <- imageRead @"input" ( Vec2 (i_gx + halfBlockEdgeVal2) i_gy )
-    assign @(Name "sharedVec2" :.: AnIndex Word32) idxp16 $ Vec2 value2 (value2 * value2)
+    assign @(Name sharedMem :.: AnIndex Word32) idx =<< (inputImageGetter i_gx i_gy)
+    assign @(Name sharedMem :.: AnIndex Word32) idxp16 =<< (inputImageGetter (i_gx + halfBlockEdgeVal2) i_gy)
     controlBarrier Workgroup Nothing
 
 writeValAndSquareToColumnReducedMatrixes:: forall (blockEdge :: Nat) (columnReducedMatrix :: Symbol) (squaredColumnReducedMatrix :: Symbol) (s::ProgramState) . (_) =>
@@ -126,7 +126,7 @@ writeValAndSquareToRowReducedMatrix i_groupIDx i_groupIDy columnIndex  (Vec2 i i
 
 guidedFilterPass1 :: Module GuidedFilterPass1ComputeDef
 guidedFilterPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize (pictureAndSquareToShared @FullSize) (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
+  integralPass1Shader @"sharedVec2" @FullSize (inputToShared @FullSize @"sharedVec2" pictureAndSquare) (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
 
 
 
@@ -209,7 +209,7 @@ colReducedMatrixCollectorV2 ix iy = locally do
 
 guidedFilterPass2 :: Module GuidedFilterPass2ComputeDef
 guidedFilterPass2 = Module $ entryPoint @"main" @Compute do
-  imageIntegralPass2Shader @"sharedVec2" @FullSize (pictureAndSquareToShared @FullSize) (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"outputMean" @"outputSquaredMean") getV2Zero
+  imageIntegralPass2Shader @"sharedVec2" @FullSize (inputToShared @FullSize @"sharedVec2" pictureAndSquare) (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"outputMean" @"outputSquaredMean") getV2Zero
 
 ------------------------------------------------
 -- A and B
@@ -240,9 +240,8 @@ type IntegralAandBPass1ComputeDef =
    ]
 
 fillAandBfromIsquaredI :: forall (blockEdge :: Nat) (s::ProgramState) . (_) =>
-  Code Word32 -> Code Word32 -> Code Int32 -> Code Int32 -> Program s s (Code ())
-fillAandBfromIsquaredI i_x i_y i_gx i_gy = locally do
-    let idx = (index2dTo1d @blockEdge) i_x i_y
+  Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))
+fillAandBfromIsquaredI i_gx i_gy = locally do
 
     let epsilon = 0.01
 
@@ -251,27 +250,17 @@ fillAandBfromIsquaredI i_x i_y i_gx i_gy = locally do
     _ <- def @"a" @RW $ div (squareI - i * i) (squareI - i * i + epsilon)
     a <- get @"a"
     let b = i * (1 - a)
-    assign @(Name "sharedVec2" :.: AnIndex Word32) idx $ Vec2 a b
+    return $ Vec2 a b
 
 aandBfromIsquaredI :: forall (blockEdge :: Nat) (s::ProgramState) . (_) =>
   Code Int32 -> Code Int32 -> Program s s (Code ())
 aandBfromIsquaredI  i_groupIDx i_groupIDy = locally do
-    let blockEdgeVal = cast (natVal (Proxy @blockEdge))
-    let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))
-    let halfBlockEdgeVal2 = cast (natVal (Proxy @(Div blockEdge 2)))
-    ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"  
-    let i_gx = blockEdgeVal * i_groupIDx + fromIntegral i_x
-    let i_gy = blockEdgeVal * i_groupIDy + fromIntegral i_y
-
-    fillAandBfromIsquaredI @blockEdge i_x i_y i_gx i_gy
-    fillAandBfromIsquaredI @blockEdge (i_x + halfBlockEdgeVal) i_y (i_gx + halfBlockEdgeVal2) i_gy
-
-    controlBarrier Workgroup Nothing   
+    inputToShared @blockEdge @"sharedVec2" fillAandBfromIsquaredI i_groupIDx i_groupIDy
 
 
 meanAandBPass1 :: Module IntegralAandBPass1ComputeDef
 meanAandBPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize (aandBfromIsquaredI @FullSize) (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"AReducedMatrix" @"BRowReducedMatrix")
+  integralPass1Shader @"sharedVec2" @FullSize (inputToShared @FullSize @"sharedVec2" fillAandBfromIsquaredI) (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"AReducedMatrix" @"BRowReducedMatrix")
 
 
 
