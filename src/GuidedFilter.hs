@@ -13,48 +13,30 @@
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleInstances   #-}
 
-module GuidedFilter where
+module GuidedFilter(guidedFilterPass1, guidedFilterPass2, meanAandBPass1, meanAandBPass2, guidedFilterFinal) where
 
 -- base
 import qualified Prelude
 import Prelude
   ( Functor, map )
-import Control.Monad
-  ( void )
-import Data.Maybe
-  ( fromJust )
-import GHC.TypeLits
-  ( KnownNat )
-
--- filepath
-import System.FilePath
-  ( (</>) )
-
--- vector-sized
-import qualified Data.Vector.Sized as Vector
-  ( fromList )
-
--- text-short
-import Data.Text.Short
-  ( ShortText )
 
 
 import Data.Proxy  
 
 -- fir
 import FIR
-  hiding ( Triangle )
 import Math.Linear
 
 
-import GHC.TypeLits
-
+import GHC.TypeLits ( Nat, Symbol, Div, natVal )
 import Data.Foldable
 
 import Common
---import FirstImplem
-
-
+    ( cast,
+      index2dTo1d,
+      integralPass1Shader,
+      imageIntegralPass2Shader,
+      average )
 
 ----------------------------------------------------------
 -- Common
@@ -91,25 +73,6 @@ pictureAndSquare x y = locally do
     value <- imageRead @"input" ( Vec2 x y )
     return $ Vec2 value $ value * value
 
-
-inputToShared :: forall (blockEdge :: Nat) (sharedMem :: Symbol) (s::ProgramState) . (_) =>
-  (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
-  Code Int32 -> Code Int32 -> Program s s (Code ())
-inputToShared inputImageGetter i_groupIDx i_groupIDy = locally do
-    ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
-    let blockEdgeVal = cast (natVal (Proxy @blockEdge))
-    let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))
-    let halfBlockEdgeVal2 = cast (natVal (Proxy @(Div blockEdge 2)))
-    
-    let i_gx = blockEdgeVal * i_groupIDx + fromIntegral i_x
-    let i_gy = blockEdgeVal * i_groupIDy + fromIntegral i_y
-    let idx = index2dTo1d @blockEdge i_x i_y
-    let idxp16 = index2dTo1d @blockEdge (i_x + halfBlockEdgeVal) i_y
-
-    assign @(Name sharedMem :.: AnIndex Word32) idx =<< (inputImageGetter i_gx i_gy)
-    assign @(Name sharedMem :.: AnIndex Word32) idxp16 =<< (inputImageGetter (i_gx + halfBlockEdgeVal2) i_gy)
-    controlBarrier Workgroup Nothing
-
 writeValAndSquareToColumnReducedMatrixes:: forall (blockEdge :: Nat) (columnReducedMatrix :: Symbol) (squaredColumnReducedMatrix :: Symbol) (s::ProgramState) . (_) =>
   Code Word32 -> Code Word32 -> Code Word32 -> Code (V 2 Float) -> Program s s (Code ())
 writeValAndSquareToColumnReducedMatrixes i_groupIDx i_groupIDy columnIndex (Vec2 i isq) = locally do
@@ -126,8 +89,7 @@ writeValAndSquareToRowReducedMatrix i_groupIDx i_groupIDy columnIndex  (Vec2 i i
 
 guidedFilterPass1 :: Module GuidedFilterPass1ComputeDef
 guidedFilterPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize (inputToShared @FullSize @"sharedVec2" pictureAndSquare) (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
-
+  integralPass1Shader @"sharedVec2" @FullSize pictureAndSquare (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
 
 
 ----------------------------------------------------------
@@ -209,7 +171,7 @@ colReducedMatrixCollectorV2 ix iy = locally do
 
 guidedFilterPass2 :: Module GuidedFilterPass2ComputeDef
 guidedFilterPass2 = Module $ entryPoint @"main" @Compute do
-  imageIntegralPass2Shader @"sharedVec2" @FullSize (inputToShared @FullSize @"sharedVec2" pictureAndSquare) (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"outputMean" @"outputSquaredMean") getV2Zero
+  imageIntegralPass2Shader @"sharedVec2" @FullSize pictureAndSquare (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"outputMean" @"outputSquaredMean") getV2Zero
 
 ------------------------------------------------
 -- A and B
@@ -252,15 +214,10 @@ fillAandBfromIsquaredI i_gx i_gy = locally do
     let b = i * (1 - a)
     return $ Vec2 a b
 
-aandBfromIsquaredI :: forall (blockEdge :: Nat) (s::ProgramState) . (_) =>
-  Code Int32 -> Code Int32 -> Program s s (Code ())
-aandBfromIsquaredI  i_groupIDx i_groupIDy = locally do
-    inputToShared @blockEdge @"sharedVec2" fillAandBfromIsquaredI i_groupIDx i_groupIDy
-
 
 meanAandBPass1 :: Module IntegralAandBPass1ComputeDef
 meanAandBPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1Shader @"sharedVec2" @FullSize (inputToShared @FullSize @"sharedVec2" fillAandBfromIsquaredI) (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"AReducedMatrix" @"BRowReducedMatrix")
+  integralPass1Shader @"sharedVec2" @FullSize fillAandBfromIsquaredI (Vec2 0 0) (writeValAndSquareToColumnReducedMatrixes @FullSize @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"AReducedMatrix" @"BRowReducedMatrix")
 
 
 
@@ -294,7 +251,7 @@ type IntegralAandBPass2ComputeDef =
 
 meanAandBPass2 :: Module IntegralAandBPass2ComputeDef
 meanAandBPass2 = Module $ entryPoint @"main" @Compute do
-  imageIntegralPass2Shader @"sharedVec2" @FullSize (aandBfromIsquaredI @FullSize) (rowReducedMatrixCollectorV2 @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (colReducedMatrixCollectorV2 @"AReducedMatrix" @"BRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"Amean" @"Bmean") getV2Zero
+  imageIntegralPass2Shader @"sharedVec2" @FullSize fillAandBfromIsquaredI (rowReducedMatrixCollectorV2 @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (colReducedMatrixCollectorV2 @"AReducedMatrix" @"BRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"Amean" @"Bmean") getV2Zero
 
 ------------------------------------------------
 -- merge pass
@@ -330,9 +287,3 @@ guidedFilterFinal = Module $ entryPoint @"main" @Compute do
     let res = meanA * i + meanB
     imageWrite @"output" (Vec2 i_gx i_gy) res
   
-
-
-
-
-------------------------------------------------
--- compiling

@@ -291,6 +291,23 @@ getZero _ = locally do
 -- Second impl
 
 
+inputToShared :: forall (blockEdge :: Nat) (sharedMem :: Symbol) (s::ProgramState) . (_) =>
+  (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
+  Code Int32 -> Code Int32 -> Program s s (Code ())
+inputToShared inputImageGetter i_groupIDx i_groupIDy = locally do
+    ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
+    let blockEdgeVal = cast (natVal (Proxy @blockEdge))
+    let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))
+    let halfBlockEdgeVal2 = cast (natVal (Proxy @(Div blockEdge 2)))
+    
+    let i_gx = blockEdgeVal * i_groupIDx + fromIntegral i_x
+    let i_gy = blockEdgeVal * i_groupIDy + fromIntegral i_y
+    let idx = index2dTo1d @blockEdge i_x i_y
+    let idxp16 = index2dTo1d @blockEdge (i_x + halfBlockEdgeVal) i_y
+
+    assign @(Name sharedMem :.: AnIndex Word32) idx =<< (inputImageGetter i_gx i_gy)
+    assign @(Name sharedMem :.: AnIndex Word32) idxp16 =<< (inputImageGetter (i_gx + halfBlockEdgeVal2) i_gy)
+    controlBarrier Workgroup Nothing
 
 getLineSum2 :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s0 :: ProgramState). (Summer a, ( _ ))
   => (Code Word32 -> Code Word32 -> Code Word32) ->
@@ -307,16 +324,16 @@ getLineSum2 index2dTo1d line initialVal = locally do
     return acc
 
 integralPass1Shader :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState) . (_) =>
-  (Code Int32 -> Code Int32 -> Program s s (Code ())) ->
+  (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
   Code a ->
   (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s s (Code ())) ->
   (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s s (Code ())) ->
   Program s s (Code ())
-integralPass1Shader loadToSharedMemGeneric initialVal writeToColumnReducedMatrix writeToRowReducedMatrix = locally do
+integralPass1Shader loadInput initialVal writeToColumnReducedMatrix writeToRowReducedMatrix = locally do
     ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
     ~(Vec3 i_groupIDx i_groupIDy _) <- get @"gl_WorkgroupID"
 
-    loadToSharedMemGeneric (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
+    inputToShared @blockEdge @sharedName loadInput (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
     when (i_x == 0) do
       horizontalSum <- getLineSum2 @sharedName @blockEdge (index2dTo1d @blockEdge) i_y initialVal
       writeToColumnReducedMatrix i_groupIDx i_groupIDy i_y horizontalSum
@@ -356,18 +373,19 @@ sumRowFromColMatrix imageCollector u_x u_y blockIDx blockIDy = locally do
     pure ()
 
 imageIntegralPass2Shader :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState). (Summer a, _) =>
-  (Code Int32 -> Code Int32 -> Program s s (Code ())) ->
+  (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
   (Code Int32 -> Code Int32 -> Program s s (Code a)) ->
   (Code Int32 -> Code Int32 -> Program s s (Code a)) ->
   (Code Word32 -> Code Word32 -> Code Int32 -> Code Int32 -> Program s s (Code ())) ->
   (() -> Program s s (Code a)) ->
   Program s s (Code ())
-imageIntegralPass2Shader loadToSharedMemGeneric rowReducedMatrixCollector colReducedMatrixCollector writeFromSharedMemGeneric getZeroz = locally do
+imageIntegralPass2Shader loadInput rowReducedMatrixCollector colReducedMatrixCollector writeFromSharedMemGeneric getZeroz = locally do
     let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))    
     ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
     ~(Vec3 i_groupIDx i_groupIDy _) <- get @"gl_WorkgroupID"
 
-    loadToSharedMemGeneric (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
+
+    inputToShared @blockEdge @sharedName loadInput (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
     inclusivePrefixSumInSharedMem @sharedName @blockEdge (index2dTo1d @blockEdge) i_x i_y
 
     sumRowFromColMatrix @sharedName @blockEdge rowReducedMatrixCollector  i_x i_y (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
