@@ -522,7 +522,7 @@ imageIntegralPass2Subgroup loadInput rowReducedMatrixCollector colReducedMatrixC
       assign @(Name "columnValue" :.: AnIndex Word32) i =<< get @"rowSum"      
       modify @"i" (+1)
 
-    _ <- def @"colSum" @RW @(V 2 Float) undefined
+    _ <- def @"colSum" @RW (Vec2 0 0)
     _ <- def @"j" @RW @Word32 0
     while (get @"j" < pure blockSize) do
       j <- get @"j"
