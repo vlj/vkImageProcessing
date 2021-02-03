@@ -374,6 +374,8 @@ integralPass1SharedMem loadInput writeToColumnReducedMatrix writeToRowReducedMat
       verticalSum <- getLineSum2 @sharedName @blockEdge (flip (index2dTo1d @blockEdge)) i_y
       writeToRowReducedMatrix i_groupIDx i_groupIDy i_y verticalSum
 
+
+-- Implementation of the first pass of the algorithm, uses subgroup
 integralPass1Subgroup :: forall (blockEdge :: Nat) a (s::ProgramState) (s2::ProgramState) (s3::ProgramState). (_) =>
   (Code Int32 -> Code Int32 -> Program s2 s2 (Code a)) ->
   (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s2 s2 (Code ())) ->
@@ -432,6 +434,13 @@ sumRowFromColMatrix imageCollector u_x u_y blockIDx blockIDy = locally do
     assign @(Name sharedName :.: AnIndex Word32) (index2dTo1d @blockEdge u_x u_y) (summing prevVal valueFromCol)
     pure ()
 
+-- integralPass2* takes 4 functions as argument:
+-- - loadInput which loads the content of the input image.
+-- - rowReducedMatrixCollector which read a row to the column reduced and summed image.
+-- - colReducedMatrixCollector which write a row to the row reduced image.
+-- - writeFromSharedMemGeneric
+
+-- Implementation of the second pass of the algorithm, uses shared memory
 imageIntegralPass2Shader :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState). (Summer a, _) =>
   (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
   (Code Int32 -> Code Int32 -> Program s s (Code a)) ->

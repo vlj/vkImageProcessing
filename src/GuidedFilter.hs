@@ -122,33 +122,33 @@ type GuidedFilterPass2ComputeDef =
                     Compute
    ]
 
-writeFromSharedMem2 :: forall (blockEdge :: Nat) (sharedName :: Symbol) (destination :: Symbol) a b (s :: ProgramState). ( _ )
-  => (Code a -> Code b) ->
-    Code Word32 -> Code Word32 ->
+write2Global :: forall (blockEdge :: Nat) (destination1 :: Symbol) (destination2 :: Symbol) a (s :: ProgramState). ( _ )
+  =>Code Word32 -> Code Word32 ->
     Code Int32 -> Code Int32 ->
+    Code (V 2 a) ->
     Program s s (Code ())
-writeFromSharedMem2 shared2glob i_x i_y blockIDx blockIDy = locally do
+write2Global i_x i_y blockIDx blockIDy (Vec2 x y) = locally do
     let blockEdgeVal = cast (natVal (Proxy @blockEdge))
-    let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))
-    let halfBlockEdgeVal2 = cast (natVal (Proxy @(Div blockEdge 2)))
     let i_gx = blockEdgeVal * blockIDx + fromIntegral i_x
     let i_gy = blockEdgeVal * blockIDy + fromIntegral i_y
+    let idx = index2dTo1d @blockEdge i_x i_y
+    imageWrite @destination1 ( Vec2 i_gx i_gy ) x
+    imageWrite @destination2 ( Vec2 i_gx i_gy ) y
+
+writeFromSharedMem2 :: forall (blockEdge :: Nat) (sharedName :: Symbol) (destination1 :: Symbol) (destination2 :: Symbol) (s :: ProgramState). ( _ )
+  => Code Word32 -> Code Word32 ->
+    Code Int32 -> Code Int32 ->
+    Program s s (Code ())
+writeFromSharedMem2 i_x i_y blockIDx blockIDy = locally do
+    let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))
+    let halfBlockEdgeVal2 = cast (natVal (Proxy @(Div blockEdge 2)))
     let idx = index2dTo1d @blockEdge i_x i_y
     let idxp16 = index2dTo1d @blockEdge (i_x + halfBlockEdgeVal) i_y
 
     v1 <- use @(Name sharedName :.: AnIndex Word32) idx
-    imageWrite @destination ( Vec2 i_gx i_gy ) $ shared2glob v1
+    write2Global @blockEdge @destination1 @destination2 i_x i_y blockIDx blockIDy v1
     v2 <- use @(Name sharedName :.: AnIndex Word32) idxp16
-    imageWrite @destination ( Vec2(i_gx + halfBlockEdgeVal2) i_gy ) $ shared2glob v2
-
-writeFromSharedMem2Global :: forall (blockEdge :: Nat) (sharedName :: Symbol) (destination1 :: Symbol) (destination2 :: Symbol) (s :: ProgramState). ( _ )
-  => Code Word32 -> Code Word32 ->
-    Code Int32 -> Code Int32 ->
-    Program s s (Code ())
-writeFromSharedMem2Global i_x i_y blockIDx blockIDy = locally do
-  writeFromSharedMem2 @blockEdge @sharedName @destination1 (\(Vec2 x _) -> x) i_x i_y blockIDx blockIDy
-  writeFromSharedMem2 @blockEdge @sharedName @destination2  (\(Vec2 _ x) -> x) i_x i_y blockIDx blockIDy
-  
+    write2Global @blockEdge @destination1 @destination2 (i_x + halfBlockEdgeVal2) i_y blockIDx blockIDy v2
 
 getV2Zero :: forall (s :: ProgramState). ( _ )
   => () -> Program s s (Code (V 2 Float))
@@ -171,7 +171,7 @@ colReducedMatrixCollectorV2 ix iy = locally do
 
 guidedFilterPass2 :: Module GuidedFilterPass2ComputeDef
 guidedFilterPass2 = Module $ entryPoint @"main" @Compute do
-  imageIntegralPass2Shader @"sharedVec2" @FullSize pictureAndSquare (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"outputMean" @"outputSquaredMean") getV2Zero
+  imageIntegralPass2Shader @"sharedVec2" @FullSize pictureAndSquare (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (writeFromSharedMem2 @FullSize @"sharedVec2" @"outputMean" @"outputSquaredMean") getV2Zero
 
 ------------------------------------------------
 -- A and B
@@ -251,7 +251,7 @@ type IntegralAandBPass2ComputeDef =
 
 meanAandBPass2 :: Module IntegralAandBPass2ComputeDef
 meanAandBPass2 = Module $ entryPoint @"main" @Compute do
-  imageIntegralPass2Shader @"sharedVec2" @FullSize fillAandBfromIsquaredI (rowReducedMatrixCollectorV2 @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (colReducedMatrixCollectorV2 @"AReducedMatrix" @"BRowReducedMatrix") (writeFromSharedMem2Global @FullSize @"sharedVec2" @"Amean" @"Bmean") getV2Zero
+  imageIntegralPass2Shader @"sharedVec2" @FullSize fillAandBfromIsquaredI (rowReducedMatrixCollectorV2 @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (colReducedMatrixCollectorV2 @"AReducedMatrix" @"BRowReducedMatrix") (writeFromSharedMem2 @FullSize @"sharedVec2" @"Amean" @"Bmean") getV2Zero
 
 ------------------------------------------------
 -- merge pass
