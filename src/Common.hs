@@ -16,6 +16,7 @@ module Common
   ( cast,
     index2dTo1d,
     integralPass1SharedMem,
+    integralPass1Subgroup,
     imageIntegralPass2Shader,
     average,
   )
@@ -57,6 +58,8 @@ import Math.Linear
 import GHC.TypeLits
 
 import Data.Foldable
+
+import Data.Vector.Sized
 
 
 cast x = fromInteger $ Prelude.toInteger x
@@ -371,6 +374,36 @@ integralPass1SharedMem loadInput writeToColumnReducedMatrix writeToRowReducedMat
       verticalSum <- getLineSum2 @sharedName @blockEdge (flip (index2dTo1d @blockEdge)) i_y
       writeToRowReducedMatrix i_groupIDx i_groupIDy i_y verticalSum
 
+integralPass1Subgroup :: forall (blockEdge :: Nat) a (s::ProgramState) (s2::ProgramState) (s3::ProgramState). (_) =>
+  (Code Int32 -> Code Int32 -> Program s2 s2 (Code a)) ->
+  (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s2 s2 (Code ())) ->
+  (Code Word32 -> Code Word32 -> Code Word32 -> Code a -> Program s3 s3 (Code ())) ->
+  Program s s (Code ())
+integralPass1Subgroup loadInput writeToColumnReducedMatrix writeToRowReducedMatrix = locally do
+    ~(Vec3 i_groupIDx i_groupIDy _) <- get @"gl_WorkgroupID"
+
+    let blockSize = cast (natVal (Proxy @blockEdge))
+
+    _ <- def @"columnValue" @RW $ (undefined :: Code (Array blockEdge a))
+    _ <- def @"i" @RW @Word32 0
+    gl_SubgroupInvocationID <- get @"gl_SubgroupInvocationID"
+    while (get @"i" < pure blockSize) do
+      i <- get @"i"
+      let coordx = fromIntegral $ blockSize * i_groupIDx + i
+      let coordy = fromIntegral $ blockSize * i_groupIDy + gl_SubgroupInvocationID
+      input <- loadInput coordx coordy
+      assign @(Name "columnValue" :.: AnIndex Word32) i input
+      summedInput <- groupAdd @'Subgroup @Reduce input
+      when (gl_SubgroupInvocationID == 0) do
+        writeToColumnReducedMatrix i_groupIDx i_groupIDy i summedInput
+      modify @"i" (+1)
+    
+    _ <- def @"acc" @RW @a initialVal 
+    _ <- def @"j" @RW @Word32 0
+    while (get @"j" < pure blockSize) do
+      modify @"acc" =<< ((^+^) <<$>> (use @(Name "columnValue" :.: AnIndex Word32) =<< get @"j"))
+      modify @"j" (+1)
+    writeToRowReducedMatrix i_groupIDx i_groupIDy gl_SubgroupInvocationID =<< get @"acc"
 
 
 sumColFromRowMatrix :: forall (sharedName :: Symbol) (blockEdge :: Nat) a (s::ProgramState). (Summer a, _) =>

@@ -34,6 +34,7 @@ import Common
     ( cast,
       index2dTo1d,
       integralPass1SharedMem,
+      integralPass1Subgroup,
       imageIntegralPass2Shader,
       average )
 
@@ -62,7 +63,7 @@ type GuidedFilterPass1ComputeDef =
                     ( R32 F )
     , "squaredRowReducedMatrix"  ':-> Image2D '[ DescriptorSet 0, Binding 4 ]
                     ( R32 F )
-    , "main" ':-> EntryPoint '[ LocalSize HalfSize FullSize 1 ]
+    , "main" ':-> EntryPoint '[ LocalSize 1 16 1 ]
                     Compute
    ]
 
@@ -88,7 +89,7 @@ writeValAndSquareToRowReducedMatrix i_groupIDx i_groupIDy columnIndex  (Vec2 i i
 
 guidedFilterPass1 :: Module GuidedFilterPass1ComputeDef
 guidedFilterPass1 = Module $ entryPoint @"main" @Compute do
-  integralPass1SharedMem @"sharedVec2" @FullSize pictureAndSquare (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
+  integralPass1Subgroup @FullSize pictureAndSquare (writeValAndSquareToColumnReducedMatrixes @FullSize @"columnReducedMatrix" @"squaredColumnReducedMatrix") (writeValAndSquareToRowReducedMatrix @FullSize @"rowReducedMatrix" @"squaredRowReducedMatrix")
 
 
 ----------------------------------------------------------
