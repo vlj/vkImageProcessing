@@ -460,14 +460,13 @@ sumRowFromColMatrix imageCollector u_x u_y blockIDx blockIDy = locally do
 -- - writeFromSharedMemGeneric
 
 -- Implementation of the second pass of the algorithm, uses shared memory
-imageIntegralPass2Shared :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState). (Summer a, _) =>
+imageIntegralPass2Shared :: forall (sharedName::Symbol) (blockEdge :: Nat) a b (s::ProgramState). (Summer a, _) =>
   (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
   (Code Int32 -> Code Int32 -> Program s s (Code a)) ->
   (Code Int32 -> Code Int32 -> Program s s (Code a)) ->
-  --(Code Word32 -> Code Word32 -> Code Int32 -> Code Int32 -> Program s s (Code ())) ->
     (Code Word32 -> Code Word32 ->
     Code Int32 -> Code Int32 ->
-    Code (V 2 Float) ->
+    Code (V 2 b) ->
     Program s s (Code ())) ->
   (() -> Program s s (Code a)) ->
   Program s s (Code ())
