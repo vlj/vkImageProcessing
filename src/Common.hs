@@ -17,7 +17,7 @@ module Common
     index2dTo1d,
     integralPass1SharedMem,
     integralPass1Subgroup,
-    imageIntegralPass2Shader,
+    imageIntegralPass2Shared,
     average,
   )
 where
@@ -319,6 +319,25 @@ inputToShared inputImageGetter i_groupIDx i_groupIDy = locally do
     controlBarrier Workgroup Nothing
 
 
+writeFromSharedMem2 :: forall (sharedName :: Symbol) (blockEdge :: Nat) a (s :: ProgramState). ( _ )
+  => (Code Word32 -> Code Word32 ->
+    Code Int32 -> Code Int32 ->
+    Code (V 2 a) ->
+    Program s s (Code ())) ->
+    Code Word32 -> Code Word32 ->
+    Code Int32 -> Code Int32 ->
+    Program s s (Code ())
+writeFromSharedMem2 write2Global i_x i_y blockIDx blockIDy = locally do
+    let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))
+    let halfBlockEdgeVal2 = cast (natVal (Proxy @(Div blockEdge 2)))
+    let idx = index2dTo1d @blockEdge i_x i_y
+    let idxp16 = index2dTo1d @blockEdge (i_x + halfBlockEdgeVal) i_y
+
+    v1 <- use @(Name sharedName :.: AnIndex Word32) idx
+    write2Global i_x i_y blockIDx blockIDy v1
+    v2 <- use @(Name sharedName :.: AnIndex Word32) idxp16
+    write2Global (i_x + halfBlockEdgeVal2) i_y blockIDx blockIDy v2
+
 class ZeroGetter a where
   initialVal :: Code a
 
@@ -441,14 +460,18 @@ sumRowFromColMatrix imageCollector u_x u_y blockIDx blockIDy = locally do
 -- - writeFromSharedMemGeneric
 
 -- Implementation of the second pass of the algorithm, uses shared memory
-imageIntegralPass2Shader :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState). (Summer a, _) =>
+imageIntegralPass2Shared :: forall (sharedName::Symbol) (blockEdge :: Nat) a (s::ProgramState). (Summer a, _) =>
   (Code Int32 -> Code Int32 -> Program s s (Code (V 2 Float))) ->
   (Code Int32 -> Code Int32 -> Program s s (Code a)) ->
   (Code Int32 -> Code Int32 -> Program s s (Code a)) ->
-  (Code Word32 -> Code Word32 -> Code Int32 -> Code Int32 -> Program s s (Code ())) ->
+  --(Code Word32 -> Code Word32 -> Code Int32 -> Code Int32 -> Program s s (Code ())) ->
+    (Code Word32 -> Code Word32 ->
+    Code Int32 -> Code Int32 ->
+    Code (V 2 Float) ->
+    Program s s (Code ())) ->
   (() -> Program s s (Code a)) ->
   Program s s (Code ())
-imageIntegralPass2Shader loadInput rowReducedMatrixCollector colReducedMatrixCollector writeFromSharedMemGeneric getZeroz = locally do
+imageIntegralPass2Shared loadInput rowReducedMatrixCollector colReducedMatrixCollector writeFromSharedMemGeneric getZeroz = locally do
     let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))    
     ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
     ~(Vec3 i_groupIDx i_groupIDy _) <- get @"gl_WorkgroupID"
@@ -467,7 +490,7 @@ imageIntegralPass2Shader loadInput rowReducedMatrixCollector colReducedMatrixCol
     sumColFromRowMatrix @sharedName @blockEdge colReducedMatrixCollector i_x i_y (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
     sumColFromRowMatrix @sharedName @blockEdge colReducedMatrixCollector (i_x + halfBlockEdgeVal) i_y (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
 
-    writeFromSharedMemGeneric i_x i_y (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)  
+    writeFromSharedMem2 @sharedName @blockEdge writeFromSharedMemGeneric i_x i_y (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)  
 
 average::forall (imageName :: Symbol) a (s::ProgramState) . (_) =>
   Code Int32 -> Code Int32 -> Int32 -> Program s s (Code a)
