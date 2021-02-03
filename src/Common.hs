@@ -18,6 +18,7 @@ module Common
     integralPass1SharedMem,
     integralPass1Subgroup,
     imageIntegralPass2Shared,
+    imageIntegralPass2Subgroup,
     average,
   )
 where
@@ -468,9 +469,8 @@ imageIntegralPass2Shared :: forall (sharedName::Symbol) (blockEdge :: Nat) a b (
     Code Int32 -> Code Int32 ->
     Code (V 2 b) ->
     Program s s (Code ())) ->
-  (() -> Program s s (Code a)) ->
   Program s s (Code ())
-imageIntegralPass2Shared loadInput rowReducedMatrixCollector colReducedMatrixCollector writeFromSharedMemGeneric getZeroz = locally do
+imageIntegralPass2Shared loadInput rowReducedMatrixCollector colReducedMatrixCollector writeFromSharedMemGeneric = locally do
     let halfBlockEdgeVal = cast (natVal (Proxy @(Div blockEdge 2)))    
     ~(Vec3 i_x i_y _) <- get @"gl_LocalInvocationID"
     ~(Vec3 i_groupIDx i_groupIDy _) <- get @"gl_WorkgroupID"
@@ -490,6 +490,52 @@ imageIntegralPass2Shared loadInput rowReducedMatrixCollector colReducedMatrixCol
     sumColFromRowMatrix @sharedName @blockEdge colReducedMatrixCollector (i_x + halfBlockEdgeVal) i_y (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)
 
     writeFromSharedMem2 @sharedName @blockEdge writeFromSharedMemGeneric i_x i_y (fromIntegral i_groupIDx) (fromIntegral i_groupIDy)  
+
+
+-- Implementation of the second pass of the algorithm, uses subgroup
+imageIntegralPass2Subgroup :: forall (blockEdge :: Nat) a b (s1::ProgramState) (s2::ProgramState) (s3::ProgramState) (s::ProgramState). (_) =>
+  (Code Int32 -> Code Int32 -> Program s1 s1 (Code (V 2 Float))) ->
+  (Code Int32 -> Code Int32 -> Program s2 s2 (Code a)) ->
+  (Code Int32 -> Code Int32 -> Program s3 s3 (Code a)) ->
+    (Code Word32 -> Code Word32 ->
+    Code Int32 -> Code Int32 ->
+    Code (V 2 b) ->
+    Program s3 s3 (Code ())) ->
+  Program s s (Code ())
+imageIntegralPass2Subgroup loadInput rowReducedMatrixCollector colReducedMatrixCollector writeFromSharedMemGeneric = locally do
+    ~(Vec3 i_groupIDx i_groupIDy _) <- get @"gl_WorkgroupID"
+
+    let blockSize = cast (natVal (Proxy @blockEdge))
+
+    _ <- def @"columnValue" @RW $ (undefined :: Code (Array blockEdge (V 2 Float)))
+    _ <- def @"i" @RW @Word32 0
+    gl_SubgroupInvocationID <- get @"gl_SubgroupInvocationID"
+    while (get @"i" < pure blockSize) do
+      i <- get @"i"
+      let coordx = fromIntegral $ blockSize * i_groupIDx + gl_SubgroupInvocationID
+      let coordy = fromIntegral $ blockSize * i_groupIDy + i
+      input <- loadInput coordx coordy
+      assign @(Name "columnValue" :.: AnIndex Word32) i input
+      _ <- def @"rowSum" @RW =<< groupAdd @'Subgroup @InclusiveScan input
+
+      modify @"rowSum" =<< (^+^) <<$>> rowReducedMatrixCollector (fromIntegral i_groupIDx - 1) (fromIntegral $ blockSize * i_groupIDy + i)
+      assign @(Name "columnValue" :.: AnIndex Word32) i =<< get @"rowSum"      
+      modify @"i" (+1)
+
+    _ <- def @"colSum" @RW @(V 2 Float) undefined
+    _ <- def @"j" @RW @Word32 0
+    while (get @"j" < pure blockSize) do
+      j <- get @"j"
+      modify @"colSum" =<< (^+^) <<$>> use @(Name "columnValue" :.: AnIndex Word32) j
+
+      let coordx =  fromIntegral (i_groupIDx * blockSize + gl_SubgroupInvocationID)
+      let coordy = (fromIntegral i_groupIDy - 1) :: Code Int32
+      assign @(Name "columnValue" :.: AnIndex Word32) j =<< (^+^) <<$>> get @"colSum" <<*>> colReducedMatrixCollector coordx coordy
+      v <- use @(Name "columnValue" :.: AnIndex Word32) j
+      writeFromSharedMemGeneric gl_SubgroupInvocationID j (fromIntegral i_groupIDx) (fromIntegral i_groupIDy) v
+
+      modify @"j" (+1)
+
 
 average::forall (imageName :: Symbol) a (s::ProgramState) . (_) =>
   Code Int32 -> Code Int32 -> Int32 -> Program s s (Code a)

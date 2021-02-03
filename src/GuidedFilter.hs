@@ -36,6 +36,7 @@ import Common
       integralPass1SharedMem,
       integralPass1Subgroup,
       imageIntegralPass2Shared,
+      imageIntegralPass2Subgroup,
       average )
 
 ----------------------------------------------------------
@@ -157,7 +158,7 @@ colReducedMatrixCollectorV2 ix iy = locally do
 
 guidedFilterPass2 :: Module GuidedFilterPass2ComputeDef
 guidedFilterPass2 = Module $ entryPoint @"main" @Compute do
-  imageIntegralPass2Shared @"sharedVec2" @FullSize pictureAndSquare (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (write2Global @FullSize @"outputMean" @"outputSquaredMean") getV2Zero
+  imageIntegralPass2Subgroup @FullSize pictureAndSquare (rowReducedMatrixCollectorV2 @"summedColumnReducedMatrix" @"summedSquaredColumnReducedMatrix") (colReducedMatrixCollectorV2 @"summedRowReducedMatrix" @"summedSquaredRowReducedMatrix") (write2Global @FullSize @"outputMean" @"outputSquaredMean")
 
 ------------------------------------------------
 -- A and B
@@ -237,7 +238,7 @@ type IntegralAandBPass2ComputeDef =
 
 meanAandBPass2 :: Module IntegralAandBPass2ComputeDef
 meanAandBPass2 = Module $ entryPoint @"main" @Compute do
-  imageIntegralPass2Shared @"sharedVec2" @FullSize fillAandBfromIsquaredI (rowReducedMatrixCollectorV2 @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (colReducedMatrixCollectorV2 @"AReducedMatrix" @"BRowReducedMatrix") (write2Global @FullSize @"Amean" @"Bmean") getV2Zero
+  imageIntegralPass2Shared @"sharedVec2" @FullSize fillAandBfromIsquaredI (rowReducedMatrixCollectorV2 @"AcolumnReducedMatrix" @"BColumnReducedMatrix") (colReducedMatrixCollectorV2 @"AReducedMatrix" @"BRowReducedMatrix") (write2Global @FullSize @"Amean" @"Bmean")
 
 ------------------------------------------------
 -- merge pass
