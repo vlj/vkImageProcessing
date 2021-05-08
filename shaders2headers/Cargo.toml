@@ -10,3 +10,4 @@ bitflags = "1.0"
 [build-dependencies]
 bindgen = "0.53.1"
 bitflags = "1.0"
+clap="2.33.3"
