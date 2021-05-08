@@ -1,0 +1,12 @@
+[package]
+name = "shader2headers"
+version = "0.1.0"
+authors = ["Vincent Lejeune <vljn.ovi@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+bitflags = "1.0"
+
+[build-dependencies]
+bindgen = "0.53.1"
+bitflags = "1.0"
