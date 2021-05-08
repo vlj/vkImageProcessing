@@ -2,8 +2,12 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
+extern crate clap;
+
 #[macro_use]
 extern crate bitflags;
+
+use clap::{Arg, App, SubCommand};
 
 
 use std::io;
@@ -265,9 +269,31 @@ fn build_header(shader_name: &str, module: SPV::CleanSpvReflectShaderModule) -> 
 }
 
 fn main() -> io::Result<()> {
+    let matches = App::new("shader2headers")
+                          .arg(Arg::with_name("input")
+                               .long("input")
+                               .required(true)
+                               .value_name("FILE")
+                               .takes_value(true))
+                          .arg(Arg::with_name("output_folder")
+                                .value_name("FILE")
+                               .required(true)
+                               .long("output_folder"))
+                          .get_matches();
+
+    let filename = match matches.value_of("input") {
+        Some(v) => v,
+        None => return Err(io::Error::from(io::ErrorKind::InvalidData)),
+    };
+
+    
+    let output_folder = match matches.value_of("output_folder") {
+        Some(v) => v,
+        None => return Err(io::Error::from(io::ErrorKind::InvalidData)),
+    };
 
     const shader_name : &str = "guidedFilterFinal";
-    const filename : &str = "C:\\Users\\vljno\\OneDrive\\Bureau\\VkClearView\\out\\build\\x64-Debug (default)\\lib\\ShaderCollection\\meanAandBPass2.h.spv";
+    //const filename : &str = "C:\\Users\\vljno\\OneDrive\\Bureau\\VkClearView\\out\\build\\x64-Debug (default)\\lib\\ShaderCollection\\meanAandBPass2.h.spv";
     let mut f = File::open(filename)?;
 
     let mut buf = Vec::new();
