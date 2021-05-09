@@ -192,7 +192,7 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     let declaration = {
         let arguments: Vec<_> = getFlattenedBindingIterator()
             .map(|descriptorBinding| {
-                format!("    DecoratedState<vk::ImageLayout::eGeneral> &&{}", &descriptorBinding.name)
+                format!("    DecoratedState<vk::ImageLayout::eGeneral> &{}", &descriptorBinding.name)
             })
             .collect();
         format!("
