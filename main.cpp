@@ -19,6 +19,7 @@
 #include <IntegralImageHelpers.h>
 #include <ShadersCollection.h>
 #include <highlevelhelpers.h>
+#include <WindowingSystem.h>
 
 int main() {
   cv::Mat img(cv::Size(500, 281), CV_32FC1, cv::Scalar(1.));
@@ -115,11 +116,6 @@ int main() {
                                     swapChain.extent.width, swapChain.extent.height, swapChain.swapChainImages[idx]);
       swapChain.Present(idx);
     }
-
-
-
-    //		auto res = drawer.Export(texout, img.cols, img.rows, vk::Format::eR8G8B8A8Unorm);
-    //		cv::imwrite("test.jpg", res);
   }
 
   glfwDestroyWindow(window);

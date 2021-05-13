@@ -33,23 +33,6 @@ struct HighLevelHelpers {
                           v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout);
 };
 
-struct SwapChainSupport {
-  Renderer &renderer;
-
-  vk::Extent2D extent;
-
-  SwapChainSupport(Renderer &r, vk::SurfaceKHR surface, size_t width, size_t height);
-
-  vk::ResultValue<uint32_t> GetPresentImage();
-
-  void Present(uint32_t idx);
-
-  vk::UniqueSwapchainKHR swapChain;
-  std::vector<vk::Image> swapChainImages;
-  std::vector<vk::UniqueImageView> swapChainImageViews;
-};
-
-
 namespace v2 {
   template<typename T>
   inline WorkgroupGeometry WorkgroupFromDomainGrid(size_t cols, size_t rows) {
