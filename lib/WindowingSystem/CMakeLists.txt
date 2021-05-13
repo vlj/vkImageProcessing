@@ -1,5 +1,5 @@
 add_library(WindowingSystem
-    include/WindowingSystem.h
+    include/WindowingSystem.hpp
     src/WindowingSystem.cpp
 )
 

@@ -1,4 +1,4 @@
-#include <WindowingSystem.h>
+#include <WindowingSystem.hpp>
 
 #include <GPUCommandAsync.hpp>
 
@@ -65,6 +65,53 @@ void SwapChainSupport::Present(uint32_t idx) {
   auto info = vk::PresentInfoKHR().setImageIndices(indexes).setSwapchains(swapChains);
 
   auto res = renderer.queue.presentKHR(info);
+}
+
+void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue queue, vk::DescriptorPool descriptorSetPool,
+                               Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width,
+                               size_t height, vk::Image presentImage) {
+
+  auto cmdbuf = Base::CreateOneShotStartedBuffer(dev, commandPool);
+
+  // TODO: Factorise this with transition
+  {
+    auto barriers = std::vector({vk::ImageMemoryBarrier()
+                                     .setImage(presentImage)
+                                     .setOldLayout(vk::ImageLayout::ePresentSrcKHR)
+                                     .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
+                                     .setSrcAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
+                                     .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
+                                     .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
+                                         vk::ImageAspectFlagBits::eColor))});
+    (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), {},
+                              {}, barriers);
+  }
+
+  auto regions =
+      std::vector({vk::ImageCopy()
+                       .setExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
+                       .setSrcSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))
+                       .setDstSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))});
+  (*cmdbuf).copyImage(*texout.tex->image, vk::ImageLayout::eGeneral, presentImage, vk::ImageLayout::eTransferDstOptimal, regions);
+
+  // TODO: Factorise this with transition
+  {
+    auto barriers = std::vector({vk::ImageMemoryBarrier()
+                                     .setImage(presentImage)
+                                     .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
+                                     .setNewLayout(vk::ImageLayout::ePresentSrcKHR)
+                                     .setSrcAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
+                                     .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
+                                     .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
+                                         vk::ImageAspectFlagBits::eColor))});
+    (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), {},
+                              {}, barriers);
+  }
+
+  auto endedCmdBuffer = Base::EndBufferRecording(std::move(cmdbuf));
+
+  auto [fence, usedcmdBuffer] = Base::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
+  Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
 }
 
 } // namespace WindowingSystem

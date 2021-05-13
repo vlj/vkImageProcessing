@@ -9,8 +9,6 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 
 #include <Context.hpp>
 #include <v2utils.h>
@@ -20,7 +18,7 @@
 #include <IntegralImageHelpers.h>
 #include <ShadersCollection.h>
 #include <highlevelhelpers.h>
-#include <WindowingSystem.h>
+#include <WindowingSystem.hpp>
 
 int main() {
   cv::Mat img(cv::Size(500, 281), CV_32FC1, cv::Scalar(1.));
