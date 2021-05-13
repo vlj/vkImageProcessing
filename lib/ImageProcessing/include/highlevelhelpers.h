@@ -19,9 +19,6 @@
 
 #include <ShadersCollection.h>
 
-vk::UniqueSurfaceKHR GetSurfaceFromGLFWWindows(vk::Instance instance,
-                                               GLFWwindow *window);
-
 struct HighLevelHelpers {
   Renderer &renderer;
 

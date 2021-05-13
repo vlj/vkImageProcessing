@@ -6,6 +6,7 @@ add_library(Base
     include/v2api.h
     include/Base_impl.h
     include/Context.h
+    include/GPUCommandAsync.hpp
     src/Base.cpp
     src/Context.cpp
 )

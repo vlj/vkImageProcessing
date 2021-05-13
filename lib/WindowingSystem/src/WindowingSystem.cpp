@@ -1,5 +1,8 @@
 #include <WindowingSystem.h>
-#include <v2utils.h>
+
+#include <GPUCommandAsync.hpp>
+
+namespace WindowingSystem {
 
 vk::UniqueSurfaceKHR GetSurfaceFromGLFWWindows(vk::Instance instance, GLFWwindow *window) {
   VkSurfaceKHR surfaceptr;
@@ -26,7 +29,7 @@ SwapChainSupport::SwapChainSupport(Renderer &r, vk::SurfaceKHR surface, size_t w
 
   extent = capabilities.currentExtent;
 
-  v2::utils::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool)
+  Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool)
       .then(renderer.queue,
             [&](auto &commandBuffer, auto &&dummy) {
               for (auto img : swapChainImages) {
@@ -63,3 +66,5 @@ void SwapChainSupport::Present(uint32_t idx) {
 
   auto res = renderer.queue.presentKHR(info);
 }
+
+} // namespace WindowingSystem

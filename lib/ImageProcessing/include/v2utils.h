@@ -79,56 +79,6 @@ auto TextureToCVMat(vk::Device dev, vk::CommandPool commandPool, vk::PhysicalDev
   return exportedimg;
 }
 
-
-inline void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue queue,
-                        vk::DescriptorPool descriptorSetPool,
-  v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm>& texout,
-  size_t width, size_t height, vk::Image presentImage) {
-
-  auto cmdbuf = v2::CreateOneShotStartedBuffer(dev, commandPool);
-
-  // TODO: Factorise this with transition
-  {
-    auto barriers = std::vector({vk::ImageMemoryBarrier()
-                                     .setImage(presentImage)
-                                     .setOldLayout(vk::ImageLayout::ePresentSrcKHR)
-                                     .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
-                                     .setSrcAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-                                     .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-                                     .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
-                                         vk::ImageAspectFlagBits::eColor))});
-    (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), {}, {},
-                           barriers);
-  }
-
-  auto regions =
-      std::vector({vk::ImageCopy()
-                       .setExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
-                       .setSrcSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))
-                       .setDstSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))});
-  (*cmdbuf).copyImage(*texout.tex->image, vk::ImageLayout::eGeneral, presentImage, vk::ImageLayout::eTransferDstOptimal, regions);
-
-    // TODO: Factorise this with transition
-  {
-    auto barriers = std::vector({vk::ImageMemoryBarrier()
-                                     .setImage(presentImage)
-                                     .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
-                                     .setNewLayout(vk::ImageLayout::ePresentSrcKHR)
-                                     .setSrcAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-                                     .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-                                     .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
-                                         vk::ImageAspectFlagBits::eColor))});
-    (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), {},
-                              {}, barriers);
-  }
-
-  auto endedCmdBuffer = v2::EndBufferRecording(std::move(cmdbuf));
-
-  auto [fence, usedcmdBuffer] = v2::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
-  v2::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
-
-}
-
 struct ShaderList {
 
   
@@ -150,50 +100,6 @@ struct ShaderList {
           helperMeanAAndBPass1(dev), helperMeanAAndBPass2(dev), helperFinalPass(dev),
           helperAveraging(dev) {}
 };
-
-template<typename TextureStatesTuple>
-struct GPUAsyncCommand {
-  vk::Device dev;
-  vk::DescriptorPool descriptorSetPool;
-  vk::CommandPool commandPool;
-  std::list<vk::UniqueFence> fences;
-  std::list<vk::UniqueCommandBuffer> commandBuffers;
-  TextureStatesTuple textureStates;
-
-  GPUAsyncCommand(vk::Device _dev, vk::DescriptorPool _descriptorSetPool, vk::CommandPool _commandPool, TextureStatesTuple&& tuple)
-      : dev(_dev), descriptorSetPool(_descriptorSetPool), commandPool(_commandPool), textureStates(std::move(tuple)) {}
-
-  template <typename FuncType> auto then(vk::Queue queue, FuncType f) {
-    auto startedCommandBuffer = v2::CreateOneShotStartedBuffer(dev, commandPool);
-    auto newTextureStates = f(startedCommandBuffer, std::move(textureStates));
-    auto endedCommandBuffer = v2::EndBufferRecording(std::move(startedCommandBuffer));
-    auto [fence, cmdbuf] = v2::SubmitBuffer(dev, queue, std::move(endedCommandBuffer));
-
-    fences.push_back(std::move(fence));
-    commandBuffers.push_back(std::move(cmdbuf));
-
-    auto args = std::tuple_cat(std::make_tuple(dev, descriptorSetPool, commandPool), std::move(newTextureStates));
-    auto result = std::apply([](auto &&...a) { return GPUAsyncUnit(std::move(a)...); }, std::move(args));
-    result.fences = std::move(fences);
-    result.commandBuffers = std::move(commandBuffers);
-    return std::move(result);
-  }
-
-  auto Sync() {
-    for (auto &f : fences) {
-      v2::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*f));
-    }
-    fences.clear();
-    commandBuffers.clear();
-    return std::move(textureStates);
-  }
-};
-
-template <typename... TextureStates>
-GPUAsyncCommand<std::tuple<TextureStates...>> GPUAsyncUnit(vk::Device _dev, vk::DescriptorPool _descriptorSetPool,
-                                                           vk::CommandPool _commandPool, TextureStates&&... t) {
-  return {_dev, _descriptorSetPool, _commandPool, std::make_tuple(std::move(t)...)};
-}
 
 } // namespace utils
 

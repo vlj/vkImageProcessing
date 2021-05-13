@@ -14,6 +14,7 @@
 
 #include <Context.h>
 #include <v2utils.h>
+#include <GPUCommandAsync.hpp>
 
 #include <GuidedFilterHelpers.h>
 #include <IntegralImageHelpers.h>
@@ -55,11 +56,11 @@ int main() {
   auto callback = createDebugCallback(*instance);
 
   {
-    auto surface = GetSurfaceFromGLFWWindows(*instance, window);
+    auto surface = WindowingSystem::GetSurfaceFromGLFWWindows(*instance, window);
 
     auto physDev = instance->enumeratePhysicalDevices();
     Renderer renderer(physDev[0], deviceextensions);
-    auto swapChain = SwapChainSupport(renderer, *surface, img.cols, img.rows);
+    auto swapChain = WindowingSystem::SwapChainSupport(renderer, *surface, img.cols, img.rows);
 
     auto helper = HighLevelHelpers(renderer);
     auto shaderList = v2::utils::ShaderList::Build(*renderer.dev);
@@ -81,7 +82,7 @@ int main() {
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img);
 
     auto newTexturesState =
-        v2::utils::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(texrgba8Undef),
+        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(texrgba8Undef),
                                 std::move(texUndef))
             .then(renderer.queue,
                   [&](auto &cmdBuffer, auto &&textureState) {
@@ -102,7 +103,7 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
-      v2::utils::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool)
+      Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool)
           .then(renderer.queue,
                 [&](auto &cmdbuffer, auto &&textureStates) {
                   IIH.draw(shaderList, guidedFilterResources, tex, cmdbuffer, width, height);
@@ -112,7 +113,7 @@ int main() {
                 })
           .Sync();
       auto idx = swapChain.GetPresentImage();
-      v2::utils::CopyToPresentImage(*renderer.dev, *renderer.commandPool, renderer.queue, *renderer.descriptorSetPool, texrgba8,
+      WindowingSystem::CopyToPresentImage(*renderer.dev, *renderer.commandPool, renderer.queue, *renderer.descriptorSetPool, texrgba8,
                                     swapChain.extent.width, swapChain.extent.height, swapChain.swapChainImages[idx]);
       swapChain.Present(idx);
     }
