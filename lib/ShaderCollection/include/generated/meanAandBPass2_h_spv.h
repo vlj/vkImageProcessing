@@ -121,7 +121,7 @@ struct meanAandBPass2_h_spv
       auto pipelineInfos = std::vector({computePipelineCreateInfo});
       auto pipelines = dev.createComputePipelinesUnique(vk::PipelineCache(), pipelineInfos, nullptr);
       pipeline = std::move(pipelines.value[0]);
-  }
+      Base::NameObject(dev, *pipeline, "meanAandBPass2_h_spv");  }
 
     std::vector<vk::DescriptorSet> CreateDescriptorSets(
         vk::DescriptorPool descriptorSetPool,
@@ -325,14 +325,14 @@ struct meanAandBPass2_h_spv
     WorkgroupGeometry workgroupGeometry,
     StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral> &I,
-    DecoratedState<vk::ImageLayout::eGeneral> &squaredI,
-    DecoratedState<vk::ImageLayout::eGeneral> &AcolumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &BColumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &AReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &BRowReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &Amean,
-    DecoratedState<vk::ImageLayout::eGeneral> &Bmean
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &I,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredI,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &AcolumnReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &BColumnReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &AReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &BRowReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &Amean,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &Bmean
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

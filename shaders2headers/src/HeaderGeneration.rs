@@ -89,6 +89,9 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
 ");
     headerContent.push_str(&pipelineCode);
 
+    // Name pipeline
+    headerContent.push_str(&format!("      Base::NameObject(dev, *pipeline, \"{}\");", shader_name));
+
     headerContent.push_str("  }\n");
     headerContent
 }
@@ -192,7 +195,17 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     let declaration = {
         let arguments: Vec<_> = getFlattenedBindingIterator()
             .map(|descriptorBinding| {
-                format!("    DecoratedState<vk::ImageLayout::eGeneral> &{}", &descriptorBinding.name)
+                let textureType = match &descriptorBinding.content {
+                    SPV::DescriptorBindingContent::Image(imgInfo) => 
+                        match imgInfo.image_format {
+                            SPV::SpvImageFormat::R32f => "eR32Sfloat",
+                            SPV::SpvImageFormat::Rgba8 => "eB8G8R8A8Unorm",
+                            _ => panic!("Unsupported texture type")
+
+                        }
+                    _ => panic!("Not an image descriptor !!")
+                };
+                format!("    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::{}> &{}", textureType, &descriptorBinding.name)
             })
             .collect();
         format!("

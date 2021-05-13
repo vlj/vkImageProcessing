@@ -61,7 +61,7 @@ struct copy_h_spv
       auto pipelineInfos = std::vector({computePipelineCreateInfo});
       auto pipelines = dev.createComputePipelinesUnique(vk::PipelineCache(), pipelineInfos, nullptr);
       pipeline = std::move(pipelines.value[0]);
-  }
+      Base::NameObject(dev, *pipeline, "copy_h_spv");  }
 
     std::vector<vk::DescriptorSet> CreateDescriptorSets(
         vk::DescriptorPool descriptorSetPool,
@@ -139,8 +139,8 @@ struct copy_h_spv
     WorkgroupGeometry workgroupGeometry,
     StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral> &inputImage,
-                                    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &resultImage
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &inputImage,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &resultImage
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

@@ -91,7 +91,7 @@ struct guidedFilterPass1_h_spv
       auto pipelineInfos = std::vector({computePipelineCreateInfo});
       auto pipelines = dev.createComputePipelinesUnique(vk::PipelineCache(), pipelineInfos, nullptr);
       pipeline = std::move(pipelines.value[0]);
-  }
+      Base::NameObject(dev, *pipeline, "guidedFilterPass1_h_spv");  }
 
     std::vector<vk::DescriptorSet> CreateDescriptorSets(
         vk::DescriptorPool descriptorSetPool,
@@ -232,11 +232,11 @@ struct guidedFilterPass1_h_spv
     WorkgroupGeometry workgroupGeometry,
     StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral> &_input,
-    DecoratedState<vk::ImageLayout::eGeneral> &columnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &squaredColumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &rowReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &squaredRowReducedMatrix
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_input,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &columnReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredColumnReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &rowReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredRowReducedMatrix
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

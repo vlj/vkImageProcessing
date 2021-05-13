@@ -57,7 +57,6 @@ fn main() -> io::Result<()> {
 
     let asIncludeCode = {
         let as32ptr = unsafe {
-            unsafe {
                 let mut result = Vec::new();
                 let ptr = buf.as_ptr() as *const u32;
                 for i in 0..(buf.len()/4) as isize {
@@ -65,7 +64,6 @@ fn main() -> io::Result<()> {
                     result.push(format!("0x{:x}", *i32val));
                 }
                 result
-            }
         };
         as32ptr
     };
@@ -77,8 +75,8 @@ fn main() -> io::Result<()> {
     let new_path = format!("{}.h", shader_name);
     let mut dest_file = File::create(&output_folder.join(new_path))?;
     dest_file.write_all(header.as_bytes())?;
-    
-    let cpp_content = format!("#include \"v2api.h\"
+
+    let cpp_content = format!("#include \"ShadersCollection.h\"
     
     const std::vector<uint32_t> v2::{}::bytecode = {{
         {}

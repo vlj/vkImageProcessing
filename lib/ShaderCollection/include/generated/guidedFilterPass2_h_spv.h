@@ -111,7 +111,7 @@ struct guidedFilterPass2_h_spv
       auto pipelineInfos = std::vector({computePipelineCreateInfo});
       auto pipelines = dev.createComputePipelinesUnique(vk::PipelineCache(), pipelineInfos, nullptr);
       pipeline = std::move(pipelines.value[0]);
-  }
+      Base::NameObject(dev, *pipeline, "guidedFilterPass2_h_spv");  }
 
     std::vector<vk::DescriptorSet> CreateDescriptorSets(
         vk::DescriptorPool descriptorSetPool,
@@ -294,13 +294,13 @@ struct guidedFilterPass2_h_spv
     WorkgroupGeometry workgroupGeometry,
     StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral> &_input,
-    DecoratedState<vk::ImageLayout::eGeneral> &summedColumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &summedSquaredColumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &summedRowReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &summedSquaredRowReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral> &outputMean,
-    DecoratedState<vk::ImageLayout::eGeneral> &outputSquaredMean
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_input,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedColumnReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedSquaredColumnReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedRowReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedSquaredRowReducedMatrix,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &outputMean,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &outputSquaredMean
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

@@ -81,7 +81,7 @@ struct guidedFilterFinal_h_spv
       auto pipelineInfos = std::vector({computePipelineCreateInfo});
       auto pipelines = dev.createComputePipelinesUnique(vk::PipelineCache(), pipelineInfos, nullptr);
       pipeline = std::move(pipelines.value[0]);
-  }
+      Base::NameObject(dev, *pipeline, "guidedFilterFinal_h_spv");  }
 
     std::vector<vk::DescriptorSet> CreateDescriptorSets(
         vk::DescriptorPool descriptorSetPool,
@@ -201,10 +201,10 @@ struct guidedFilterFinal_h_spv
     WorkgroupGeometry workgroupGeometry,
     StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral> &I,
-    DecoratedState<vk::ImageLayout::eGeneral> &Amean,
-    DecoratedState<vk::ImageLayout::eGeneral> &Bmean,
-    DecoratedState<vk::ImageLayout::eGeneral> &_output
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &I,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &Amean,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &Bmean,
+    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_output
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
