@@ -71,11 +71,12 @@ void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue q
                                Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width,
                                size_t height, vk::Image presentImage) {
 
-  auto cmdbuf = Base::CreateOneShotStartedBuffer(dev, commandPool);
-
-  // TODO: Factorise this with transition
-  {
-    auto barriers = std::vector({vk::ImageMemoryBarrier()
+    Base::GPUAsyncUnit(dev, descriptorSetPool, commandPool)
+      .then(queue, [&](auto &cmdbuf, auto &&textures) {
+              // TODO: Factorise this with transition
+              {
+                auto barriers =
+                    std::vector({vk::ImageMemoryBarrier()
                                      .setImage(presentImage)
                                      .setOldLayout(vk::ImageLayout::ePresentSrcKHR)
                                      .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
@@ -83,20 +84,22 @@ void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue q
                                      .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
                                      .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
                                          vk::ImageAspectFlagBits::eColor))});
-    (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), {},
-                              {}, barriers);
-  }
+                (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands,
+                                          vk::DependencyFlags(), {}, {}, barriers);
+              }
 
-  auto regions =
-      std::vector({vk::ImageCopy()
+              auto regions = std::vector(
+                  {vk::ImageCopy()
                        .setExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
                        .setSrcSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))
                        .setDstSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))});
-  (*cmdbuf).copyImage(*texout.tex->image, vk::ImageLayout::eGeneral, presentImage, vk::ImageLayout::eTransferDstOptimal, regions);
+              (*cmdbuf).copyImage(*texout.tex->image, vk::ImageLayout::eGeneral, presentImage, vk::ImageLayout::eTransferDstOptimal,
+                                  regions);
 
-  // TODO: Factorise this with transition
-  {
-    auto barriers = std::vector({vk::ImageMemoryBarrier()
+              // TODO: Factorise this with transition
+              {
+                auto barriers =
+                    std::vector({vk::ImageMemoryBarrier()
                                      .setImage(presentImage)
                                      .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
                                      .setNewLayout(vk::ImageLayout::ePresentSrcKHR)
@@ -104,14 +107,12 @@ void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue q
                                      .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
                                      .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
                                          vk::ImageAspectFlagBits::eColor))});
-    (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), {},
-                              {}, barriers);
-  }
-
-  auto endedCmdBuffer = Base::EndBufferRecording(std::move(cmdbuf));
-
-  auto [fence, usedcmdBuffer] = Base::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
-  Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
+                (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands,
+                                          vk::DependencyFlags(), {}, {}, barriers);
+              }
+              return std::make_tuple();
+      })
+      .Sync();
 }
 
 } // namespace WindowingSystem
