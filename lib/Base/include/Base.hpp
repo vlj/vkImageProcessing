@@ -44,6 +44,7 @@ template <vk::ImageLayout layout, vk::Format format = vk::Format::eR32Sfloat> st
 
   DecoratedState &operator=(DecoratedState<layout, format> &&in) noexcept {
     tex = std::move(in.tex);
+    in.tex = nullptr;
     return *this;
   }
 
