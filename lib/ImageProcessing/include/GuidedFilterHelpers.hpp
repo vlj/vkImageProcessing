@@ -14,6 +14,20 @@ struct AuxiliarySummer {
   Renderer &renderer;
 
   struct ImageStorage {
+    std::unique_ptr<Base::Texture> columnReducedMatrixStorage;
+    std::unique_ptr<Base::Texture> squaredColumnReducedMatrixStorage;
+
+    std::unique_ptr<Base::Texture> columnReducedMatrixSummedStorage;
+    std::unique_ptr<Base::Texture> squaredColumnReducedMatrixSummedStorage;
+
+    std::unique_ptr<Base::Texture> rowReducedMatrixStorage;
+    std::unique_ptr<Base::Texture> squaredRowReducedMatrixStorage;
+
+    std::unique_ptr<Base::Texture> rowReducedMatrixSummedStorage;
+    std::unique_ptr<Base::Texture> rowReducedMatrixSummed2Storage;
+    std::unique_ptr<Base::Texture> squaredRowReducedMatrixSummedStorage;
+    std::unique_ptr<Base::Texture> squaredRowReducedMatrixSummed2Storage;
+
     v2::DecoratedState<vk::ImageLayout::eGeneral> columnReducedMatrix;
     v2::DecoratedState<vk::ImageLayout::eGeneral> squaredColumnReducedMatrix;
 
@@ -46,6 +60,13 @@ struct IntegralImageHelper {
     size_t width;
     size_t height;
     AuxiliarySummer::ImageStorage auxiliaryImage;
+    std::unique_ptr<Base::Texture> teximageIntegralStorage;
+    std::unique_ptr<Base::Texture> texsquaredImageIntegralStorage;
+    std::unique_ptr<Base::Texture> meanIStorage;
+    std::unique_ptr<Base::Texture> meanSqIStorage;
+    std::unique_ptr<Base::Texture> meanAStorage;
+    std::unique_ptr<Base::Texture> meanBStorage;
+    std::unique_ptr<Base::Texture> resultStorage;
     v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> teximageIntegral;
     v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> texsquaredImageIntegral;
     v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanI;

@@ -72,8 +72,8 @@ int main() {
     auto [buf, buffermem] = v2::GetMemoryBufferFrom(*renderer.dev, renderer.memprop, imgData);
     auto buffer = std::move(buf);
 
-    auto texUndef = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, img.cols, img.rows, "input");
-    auto texrgba8Undef = v2::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, img.cols, img.rows, "rgba8output");
+    auto [texUndef, texStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, img.cols, img.rows, "input");
+    auto [texrgba8Undef, texrgba8Storage] = v2::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, img.cols, img.rows, "rgba8output");
 
     auto guidedFilterResources = GuidedFilter::IntegralImageHelper::BuildImageStorage(
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img);
