@@ -15,6 +15,7 @@
 #include <Context.hpp>
 #include <ShadersCollection.h>
 #include <IntegralImageHelpers.h>
+#include <GPUCommandAsync.hpp>
 #include <v2utils.h>
 
 namespace {
@@ -100,14 +101,16 @@ TEST_CASE("Misc test", "[API]") {
                                                                     *renderer.descriptorSetPool, img, "inputImage");
     auto [texOut, texOutStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "horizontalPrefixSumResult");
 
-    
-    auto cmdbuffer = v2::CreateOneShotStartedBuffer(*renderer.dev, *renderer.commandPool);
-    auto texOutInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(texOut));
-    horizontalSummer(cmdbuffer, tex, texOutInGeneralForm);
-    auto endedCmdBuffer = v2::EndBufferRecording(std::move(cmdbuffer));
-    auto [fence, usedcmdBuffer] = v2::SubmitBuffer(*renderer.dev, renderer.queue, std::move(endedCmdBuffer));
-    v2::WaitAndReset(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(*fence));
-
+    auto [texOutInGeneralForm] =
+        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(tex), std::move(texOut))
+            .then(renderer.queue,
+                  [&](auto &cmdBuffer, auto &&textures) {
+                    auto [tex, texOut] = std::move(textures);
+                    auto texOutInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(texOut));
+                    horizontalSummer(cmdBuffer, tex, texOutInGeneralForm);
+                    return std::make_tuple(std::move(texOutInGeneralForm));
+                  })
+            .Sync();
     auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                  *renderer.descriptorSetPool, std::move(texOutInGeneralForm));
 
@@ -122,16 +125,19 @@ TEST_CASE("Misc test", "[API]") {
 
     IntegralImageHelper::VerticalSummer verticalSummer(renderer);
 
-    auto [tex, storage0] = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
-                                                                    *renderer.descriptorSetPool, img, "inputImage");
+    auto [tex, storage0] = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(
+        *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img, "inputImage");
     auto [texOut, storage] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "verticalPrefixSumResult");
-
-    auto cmdbuffer = v2::CreateOneShotStartedBuffer(*renderer.dev, *renderer.commandPool);
-    auto texOutInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(texOut));
-    verticalSummer(cmdbuffer, tex, texOutInGeneralForm);
-    auto endedCmdBuffer = v2::EndBufferRecording(std::move(cmdbuffer));
-    auto [fence, usedcmdBuffer] = v2::SubmitBuffer(*renderer.dev, renderer.queue, std::move(endedCmdBuffer));
-    v2::WaitAndReset(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(*fence));
+    auto [texOutInGeneralForm] =
+        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(tex), std::move(texOut))
+            .then(renderer.queue,
+                  [&](auto &cmdbuffer, auto &&textures) {
+                    auto [tex, texOut] = std::move(textures);
+                    auto texOutInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(texOut));
+                    verticalSummer(cmdbuffer, tex, texOutInGeneralForm);
+                    return std::make_tuple(std::move(texOutInGeneralForm));
+                  })
+            .Sync();
 
     auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                  *renderer.descriptorSetPool, std::move(texOutInGeneralForm));
@@ -155,22 +161,27 @@ TEST_CASE("Misc test", "[API]") {
     auto [allSummed, storage2] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "AllSummed");
     auto [averaged, storage3] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "averaged");
 
-    auto cmdbuffer = v2::CreateOneShotStartedBuffer(*renderer.dev, *renderer.commandPool);
-    auto horizontallySummedGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummed));
-    auto allSummedInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(allSummed));
-    auto averagedInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(averaged));
+    auto [averagedInGeneralForm] =
+        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(tex), std::move(horizontallySummed),
+                           std::move(allSummed), std::move(averaged))
+            .then(renderer.queue,
+                  [&](auto &cmdbuffer, auto &&textures) {
+                    auto [tex, horizontallySummed, allSummed, averaged] = std::move(textures);
+                    auto horizontallySummedGeneralForm =
+                        v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummed));
+                    auto allSummedInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(allSummed));
+                    auto averagedInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(averaged));
 
-    horizontalSummer(cmdbuffer, tex, horizontallySummedGeneralForm);
-    horizontallySummedGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummedGeneralForm));
-    verticalSummer(cmdbuffer, horizontallySummedGeneralForm, allSummedInGeneralForm);
-    allSummedInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(allSummedInGeneralForm));
-    averagerFromIntegralImage(v2::WorkgroupFromDomainGrid<Shaders::TestAverage>(128, 64), cmdbuffer, *renderer.descriptorSetPool,
-                              allSummedInGeneralForm, averagedInGeneralForm);
-
-    auto endedCmdBuffer = v2::EndBufferRecording(std::move(cmdbuffer));
-    auto [fence, usedcmdBuffer] = v2::SubmitBuffer(*renderer.dev, renderer.queue, std::move(endedCmdBuffer));
-    v2::WaitAndReset(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(*fence));
-
+                    horizontalSummer(cmdbuffer, tex, horizontallySummedGeneralForm);
+                    horizontallySummedGeneralForm =
+                        v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummedGeneralForm));
+                    verticalSummer(cmdbuffer, horizontallySummedGeneralForm, allSummedInGeneralForm);
+                    allSummedInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(allSummedInGeneralForm));
+                    averagerFromIntegralImage(v2::WorkgroupFromDomainGrid<Shaders::TestAverage>(128, 64), cmdbuffer,
+                                              *renderer.descriptorSetPool, allSummedInGeneralForm, averagedInGeneralForm);
+                    return std::make_tuple(std::move(averagedInGeneralForm));
+                  })
+            .Sync();
     auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                  *renderer.descriptorSetPool, std::move(averagedInGeneralForm));
 
