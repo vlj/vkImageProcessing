@@ -86,8 +86,8 @@ namespace GuidedFilter {
       auto cmdBuf = v2::CreateOneShotStartedBuffer(dev, commandPool);
 
       ImageStorage returnValue{
-          img.cols,
-          img.rows,
+          size_t(img.cols),
+          size_t(img.rows),
           AuxiliarySummer::BuildImageStorage(dev, *cmdBuf, img.cols, img.rows),
           v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(teximageIntegral)),
           v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(texsquaredImageIntegral)),
@@ -113,7 +113,7 @@ namespace GuidedFilter {
       std::list<vk::UniqueDeviceMemory> currentMemoryList;
 
       {
-        v2::RegionMarker(*commandBuffer, "Compute meanI and mean I Square", {1.f, 1.f, 0.f, 1.f});
+        v2::RegionMarker marker(*commandBuffer, "Compute meanI and mean I Square", {1.f, 1.f, 0.f, 1.f});
         shaderList.helperGuidedFilterPass1(v2::WorkgroupFromDomainGrid<Shaders::GuidedFilterPass1>(width, height), commandBuffer,
                                            *renderer.descriptorSetPool, tex, storedImage.auxiliaryImage.columnReducedMatrix,
                                            storedImage.auxiliaryImage.squaredColumnReducedMatrix,
@@ -142,7 +142,7 @@ namespace GuidedFilter {
                                  storedImage.meanI, storedImage.meanSqI);
 
       {
-        v2::RegionMarker(*commandBuffer, "Compute meanA, meanB and output", {1.f, 0.f, 1.f, 1.f});
+        v2::RegionMarker marker(*commandBuffer, "Compute meanA, meanB and output", {1.f, 0.f, 1.f, 1.f});
 
         shaderList.helperMeanAAndBPass1(v2::WorkgroupFromDomainGrid<Shaders::MeanAAndBPass1>(width, height), commandBuffer,
                                         *renderer.descriptorSetPool, storedImage.meanI, storedImage.meanSqI,

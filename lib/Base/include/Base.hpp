@@ -42,7 +42,7 @@ struct Texture {
 
 template <vk::ImageLayout layout, vk::Format format = vk::Format::eR32Sfloat> struct DecoratedState {
 
-  DecoratedState &operator=(DecoratedState<layout, format> &&in) {
+  DecoratedState &operator=(DecoratedState<layout, format> &&in) noexcept {
     tex = std::move(in.tex);
     return *this;
   }

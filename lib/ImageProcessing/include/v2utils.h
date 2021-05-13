@@ -1,9 +1,20 @@
 #pragma once
 
+
+#ifdef WIN32
+#include <codeanalysis\warnings.h>
+#pragma warning(push)
+#pragma warning(disable : ALL_CODE_ANALYSIS_WARNINGS)
+#endif
+
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+
+#ifdef WIN32
+#pragma warning(pop)
+#endif
 
 #include <Base.hpp>
 #include <ShadersCollection.h>
