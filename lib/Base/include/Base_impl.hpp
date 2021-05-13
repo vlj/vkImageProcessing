@@ -9,7 +9,7 @@ namespace Base {
 template <vk::ImageLayout Output, vk::ImageLayout Input, vk::Format Format>
 DecoratedState<Output, Format> Transition(vk::CommandBuffer cmdbuf, DecoratedState<Input, Format> &&in) {
   auto barriers = std::vector({vk::ImageMemoryBarrier()
-                                   .setImage(*(in.tex->image))
+                                   .setImage(in.image)
                                    .setOldLayout(Input)
                                    .setNewLayout(Output)
                                    .setSrcAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
@@ -18,7 +18,7 @@ DecoratedState<Output, Format> Transition(vk::CommandBuffer cmdbuf, DecoratedSta
                                        vk::ImageAspectFlagBits::eColor))});
   cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), {}, {},
                          barriers);
-  return {std::move(in.tex)};
+  return {in.image, in.view, in.width, in.height};
 }
 
 template <vk::ImageLayout Output, vk::ImageLayout Input>
@@ -39,8 +39,8 @@ void LowLevelTransition(vk::CommandBuffer cmdbuf, vk::Image in) {
 
 template <vk::Format Format>
 auto CopyImageToBuffer(StartedCommandBuffer &cmdbuf, DecoratedState<vk::ImageLayout::eTransferSrcOptimal, Format> &tex, vk::Buffer buffer) {
-  size_t width = tex.tex->width;
-  size_t height = tex.tex->height;
+  size_t width = tex.width;
+  size_t height = tex.height;
 
   auto regions =
       std::vector({vk::BufferImageCopy()
@@ -50,7 +50,7 @@ auto CopyImageToBuffer(StartedCommandBuffer &cmdbuf, DecoratedState<vk::ImageLay
                        .setImageExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
                        .setImageSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))});
 
-  (*cmdbuf).copyImageToBuffer(*(tex.tex->image), vk::ImageLayout::eTransferSrcOptimal, buffer, regions);
+  (*cmdbuf).copyImageToBuffer(tex.image, vk::ImageLayout::eTransferSrcOptimal, buffer, regions);
   return;
 }
 
@@ -58,7 +58,9 @@ template <vk::Format Format>
 std::tuple<DecoratedState<vk::ImageLayout::eUndefined, Format>, std::unique_ptr<Texture>> CreateTexture(vk::Device dev, int width,
                                                                                                         int height, std::string name) {
   auto textureStorage = std::make_unique<Texture>(dev, width, height, Format, name);
-  return std::make_tuple(DecoratedState<vk::ImageLayout::eUndefined, Format>{textureStorage.get()}, std::move(textureStorage));
+  return std::make_tuple(DecoratedState<vk::ImageLayout::eUndefined, Format>{*textureStorage->image, *textureStorage->view,
+                                                                             textureStorage->width, textureStorage->height},
+                         std::move(textureStorage));
 }
 
 template <vk::Format Format>
@@ -69,14 +71,14 @@ CopyToTexture(StartedCommandBuffer &cmdbuf, DecoratedState<vk::ImageLayout::eTra
   auto regions =
       std::vector({vk::BufferImageCopy()
                        .setBufferOffset(0)
-                       .setBufferImageHeight(texture.tex->height)
-                       .setBufferRowLength(texture.tex->width)
-                       .setImageExtent(vk::Extent3D().setWidth(texture.tex->width).setHeight(texture.tex->height).setDepth(1))
+                       .setBufferImageHeight(texture.height)
+                       .setBufferRowLength(texture.width)
+                       .setImageExtent(vk::Extent3D().setWidth(texture.width).setHeight(texture.height).setDepth(1))
                        .setImageSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))});
 
-  (*cmdbuf).copyBufferToImage(transientBuffer, *texture.tex->image, vk::ImageLayout::eTransferDstOptimal, regions);
+  (*cmdbuf).copyBufferToImage(transientBuffer, texture.image, vk::ImageLayout::eTransferDstOptimal, regions);
 
-  return {std::move(texture.tex)};
+  return {texture.image, texture.view, texture.width, texture.height};
 }
 
 } // namespace Base

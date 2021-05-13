@@ -241,7 +241,7 @@ struct guidedFilterPass1_h_spv
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, *_input.tex->view,*columnReducedMatrix.tex->view,*squaredColumnReducedMatrix.tex->view,*rowReducedMatrix.tex->view,*squaredRowReducedMatrix.tex->view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, _input.view,columnReducedMatrix.view,squaredColumnReducedMatrix.view,rowReducedMatrix.view,squaredRowReducedMatrix.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);

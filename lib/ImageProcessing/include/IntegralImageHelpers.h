@@ -16,10 +16,10 @@ struct VerticalSummer {
 
   void operator()(Base::StartedCommandBuffer &commandBuffer, Base::DecoratedState<vk::ImageLayout::eGeneral> &_input,
                   Base::DecoratedState<vk::ImageLayout::eGeneral> &_output) {
-    assert(_input.tex->width == _output.tex->width);
-    assert(_input.tex->height == _output.tex->height);
+    assert(_input.width == _output.width);
+    assert(_input.height == _output.height);
 
-    auto blockGeometry = v2::LaunchScanTtB<Shaders::VerticalSumation>(_input.tex->height, _input.tex->width);
+    auto blockGeometry = v2::LaunchScanTtB<Shaders::VerticalSumation>(_input.height, _input.width);
     helper(blockGeometry, commandBuffer, *renderer.descriptorSetPool, std::move(_input), std::move(_output));
   }
 };
@@ -34,10 +34,10 @@ struct HorizontalSummer {
 
   void operator()(Base::StartedCommandBuffer &commandBuffer, Base::DecoratedState<vk::ImageLayout::eGeneral> &_input,
                   Base::DecoratedState<vk::ImageLayout::eGeneral> &_output) {
-    assert(_input.tex->width == _output.tex->width);
-    assert(_input.tex->height == _output.tex->height);
+    assert(_input.width == _output.width);
+    assert(_input.height == _output.height);
 
-    auto blockGeometry = v2::LaunchScanLtR<Shaders::HorizontalSumation>(_input.tex->width, _input.tex->height);
+    auto blockGeometry = v2::LaunchScanLtR<Shaders::HorizontalSumation>(_input.width, _input.height);
     helper(blockGeometry, commandBuffer, *renderer.descriptorSetPool, std::move(_input), std::move(_output));
   }
 };

@@ -209,7 +209,7 @@ struct averagingISqI_h_spv
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, *I.tex->view,*squaredI.tex->view,*meanA.tex->view,*meanB.tex->view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, I.view,squaredI.view,meanA.view,meanB.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);

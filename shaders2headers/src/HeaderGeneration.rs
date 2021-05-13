@@ -224,7 +224,7 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     let body = {
         let arguments : Vec<_> = getFlattenedBindingIterator()
         .map(|descriptorBinding| {
-            format!("*{}.tex->view", &descriptorBinding.name)
+            format!("{}.view", &descriptorBinding.name)
         })
         .collect();
 

@@ -145,7 +145,7 @@ struct copy_h_spv
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, *inputImage.tex->view,*resultImage.tex->view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, inputImage.view,resultImage.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);

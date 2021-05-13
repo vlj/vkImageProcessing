@@ -93,7 +93,7 @@ void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue q
                        .setExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
                        .setSrcSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))
                        .setDstSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))});
-              (*cmdbuf).copyImage(*texout.tex->image, vk::ImageLayout::eGeneral, presentImage, vk::ImageLayout::eTransferDstOptimal,
+              (*cmdbuf).copyImage(texout.image, vk::ImageLayout::eGeneral, presentImage, vk::ImageLayout::eTransferDstOptimal,
                                   regions);
 
               // TODO: Factorise this with transition

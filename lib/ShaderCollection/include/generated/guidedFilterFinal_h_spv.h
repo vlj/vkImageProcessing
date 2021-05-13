@@ -209,7 +209,7 @@ struct guidedFilterFinal_h_spv
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, *I.tex->view,*Amean.tex->view,*Bmean.tex->view,*_output.tex->view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, I.view,Amean.view,Bmean.view,_output.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);

@@ -43,14 +43,23 @@ struct Texture {
 template <vk::ImageLayout layout, vk::Format format = vk::Format::eR32Sfloat> struct DecoratedState {
 
   DecoratedState &operator=(DecoratedState<layout, format> &&in) noexcept {
-    tex = std::move(in.tex);
-    in.tex = nullptr;
+    width = in.width;
+    height = in.height;
+    view = in.view;
+    image = in.image;
+    in.view = nullptr;
+    in.image = nullptr;
+    in.width = 0;
+    in.height = 0;
     return *this;
   }
 
   DecoratedState(DecoratedState<layout, format> &&in) = default;
 
-  Texture* tex;
+  vk::Image image;
+  vk::ImageView view;
+  size_t width;
+  size_t height;
 };
 
 template <vk::ImageLayout Output, vk::ImageLayout Input, vk::Format Format>

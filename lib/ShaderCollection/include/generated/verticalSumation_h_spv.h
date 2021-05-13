@@ -145,7 +145,7 @@ struct verticalSumation_h_spv
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, *_input.tex->view,*_output.tex->view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, _input.view,_output.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);

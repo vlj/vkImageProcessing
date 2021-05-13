@@ -273,7 +273,7 @@ struct meanAandBPass1_h_spv
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, *I.tex->view,*squaredI.tex->view,*AcolumnReducedMatrix.tex->view,*BColumnReducedMatrix.tex->view,*AReducedMatrix.tex->view,*BRowReducedMatrix.tex->view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, I.view,squaredI.view,AcolumnReducedMatrix.view,BColumnReducedMatrix.view,AReducedMatrix.view,BRowReducedMatrix.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);

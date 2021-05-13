@@ -50,7 +50,7 @@ auto CreateTextureSync(vk::Device dev, vk::CommandPool commandPool, vk::Physical
                        vk::DescriptorPool descriptorSetPool,
                        const cv::Mat &img, std::string name) {
   assert(Format == internal::GetFormatFromCVType(img.type()));
-  auto cmdbuffer = CreateOneShotStartedBuffer(dev, commandPool);
+  auto cmdbuffer = Base::CreateOneShotStartedBuffer(dev, commandPool);
 
   auto [texture, storage] = Base::CreateTexture<Format>(dev, img.cols, img.rows, name);
   auto textureDest = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdbuffer, std::move(texture));
@@ -71,21 +71,21 @@ template <vk::Format Format>
 auto TextureToCVMat(vk::Device dev, vk::CommandPool commandPool, vk::PhysicalDeviceMemoryProperties memprop, vk::Queue queue,
                     vk::DescriptorPool descriptorSetPool, Base::DecoratedState<vk::ImageLayout::eGeneral, Format> &&tex) {
 
-  cv::Mat exportedimg(tex.tex->height, tex.tex->width, internal::GetCVTypeFromFormat(tex.tex->format));
+  cv::Mat exportedimg(tex.height, tex.width, internal::GetCVTypeFromFormat(Format));
 
-  auto cmdbuffer = CreateOneShotStartedBuffer(dev, commandPool);
-  auto copySize = tex.tex->width * tex.tex->height * 4;
-  auto &&[outputBuffer, memory] = v2::getTransientBufferAndMemory(dev, memprop, copySize);
+  auto cmdbuffer = Base::CreateOneShotStartedBuffer(dev, commandPool);
+  auto copySize = tex.width * tex.height * 4;
+  auto &&[outputBuffer, memory] = Base::getTransientBufferAndMemory(dev, memprop, copySize);
 
-  auto texAsSrc = v2::Transition<vk::ImageLayout::eTransferSrcOptimal>(*cmdbuffer, std::move(tex));
-  v2::CopyImageToBuffer(cmdbuffer, texAsSrc, *outputBuffer);
+  auto texAsSrc = Base::Transition<vk::ImageLayout::eTransferSrcOptimal>(*cmdbuffer, std::move(tex));
+  Base::CopyImageToBuffer(cmdbuffer, texAsSrc, *outputBuffer);
 
-  auto endedCmdBuffer = v2::EndBufferRecording(std::move(cmdbuffer));
+  auto endedCmdBuffer = Base::EndBufferRecording(std::move(cmdbuffer));
 
-  auto [fence, bufferToClean] = v2::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
-  v2::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
+  auto [fence, bufferToClean] = Base::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
+  Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
   auto exportedImgPtr = gsl::span<std::byte>(reinterpret_cast<std::byte*>(exportedimg.ptr()), 4 * exportedimg.rows * exportedimg.cols);
-  v2::CopyFromBuffer(dev, *memory, exportedImgPtr);
+  Base::CopyFromBuffer(dev, *memory, exportedImgPtr);
   
   return exportedimg;
 }
