@@ -205,14 +205,14 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
                         }
                     _ => panic!("Not an image descriptor !!")
                 };
-                format!("    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::{}> &{}", textureType, &descriptorBinding.name)
+                format!("    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::{}> &{}", textureType, &descriptorBinding.name)
             })
             .collect();
         format!("
   [[nodiscard]]
   auto operator()(
-    WorkgroupGeometry workgroupGeometry,
-    StartedCommandBuffer& commandBuffer,
+    Base::WorkgroupGeometry workgroupGeometry,
+    Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
 {}
   )

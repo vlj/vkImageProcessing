@@ -260,15 +260,15 @@ struct meanAandBPass1_h_spv
 
   [[nodiscard]]
   auto operator()(
-    WorkgroupGeometry workgroupGeometry,
-    StartedCommandBuffer& commandBuffer,
+    Base::WorkgroupGeometry workgroupGeometry,
+    Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &I,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredI,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &AcolumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &BColumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &AReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &BRowReducedMatrix
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &I,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredI,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &AcolumnReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &BColumnReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &AReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &BRowReducedMatrix
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

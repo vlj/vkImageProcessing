@@ -136,11 +136,11 @@ struct verticalSumation_h_spv
 
   [[nodiscard]]
   auto operator()(
-    WorkgroupGeometry workgroupGeometry,
-    StartedCommandBuffer& commandBuffer,
+    Base::WorkgroupGeometry workgroupGeometry,
+    Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_input,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_output
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_input,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_output
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

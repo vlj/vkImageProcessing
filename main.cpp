@@ -69,11 +69,12 @@ int main() {
     IntegralImageHelper::HorizontalSummer horizontalSummer(renderer);
     GuidedFilter::IntegralImageHelper IIH(renderer);
     gsl::span<std::byte> imgData((std::byte*)(img.ptr()), 4 * img.cols * img.rows);
-    auto [buf, buffermem] = v2::GetMemoryBufferFrom(*renderer.dev, renderer.memprop, imgData);
+    auto [buf, buffermem] = Base::GetMemoryBufferFrom(*renderer.dev, renderer.memprop, imgData);
     auto buffer = std::move(buf);
 
-    auto [texUndef, texStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, img.cols, img.rows, "input");
-    auto [texrgba8Undef, texrgba8Storage] = v2::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, img.cols, img.rows, "rgba8output");
+    auto [texUndef, texStorage] = Base::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, img.cols, img.rows, "input");
+    auto [texrgba8Undef, texrgba8Storage] =
+        Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, img.cols, img.rows, "rgba8output");
 
     auto guidedFilterResources = GuidedFilter::IntegralImageHelper::BuildImageStorage(
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img);
@@ -84,13 +85,13 @@ int main() {
             .then(renderer.queue,
                   [&](auto &cmdBuffer, auto &&textureState) {
                     auto [rgba8undef, texundef] = std::move(textureState);
-                    auto rgba8 = v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(rgba8undef));
+                    auto rgba8 = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(rgba8undef));
 
-                    auto textureDest = v2::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdBuffer, std::move(texundef));
+                    auto textureDest = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdBuffer, std::move(texundef));
 
-                    auto updatedTexture = v2::CopyToTexture(cmdBuffer, textureDest, *buffer);
-                    auto readableTexture = v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(updatedTexture));
-                    auto tex = v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(readableTexture));
+                    auto updatedTexture = Base::CopyToTexture(cmdBuffer, textureDest, *buffer);
+                    auto readableTexture = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(updatedTexture));
+                    auto tex = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(readableTexture));
                     return std::make_tuple(std::move(rgba8), std::move(tex));
                   })
             .Sync();

@@ -198,13 +198,13 @@ struct averagingISqI_h_spv
 
   [[nodiscard]]
   auto operator()(
-    WorkgroupGeometry workgroupGeometry,
-    StartedCommandBuffer& commandBuffer,
+    Base::WorkgroupGeometry workgroupGeometry,
+    Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &I,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredI,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &meanA,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &meanB
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &I,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredI,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &meanA,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &meanB
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

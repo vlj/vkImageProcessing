@@ -136,11 +136,11 @@ struct copy_h_spv
 
   [[nodiscard]]
   auto operator()(
-    WorkgroupGeometry workgroupGeometry,
-    StartedCommandBuffer& commandBuffer,
+    Base::WorkgroupGeometry workgroupGeometry,
+    Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &inputImage,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &resultImage
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &inputImage,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &resultImage
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

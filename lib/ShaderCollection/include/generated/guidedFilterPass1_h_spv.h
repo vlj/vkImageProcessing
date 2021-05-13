@@ -229,14 +229,14 @@ struct guidedFilterPass1_h_spv
 
   [[nodiscard]]
   auto operator()(
-    WorkgroupGeometry workgroupGeometry,
-    StartedCommandBuffer& commandBuffer,
+    Base::WorkgroupGeometry workgroupGeometry,
+    Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_input,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &columnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredColumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &rowReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredRowReducedMatrix
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_input,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &columnReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredColumnReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &rowReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &squaredRowReducedMatrix
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

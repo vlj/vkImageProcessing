@@ -31,22 +31,21 @@
 #include <ShadersCollection.h>
 
 namespace v2 {
-  template<typename T>
-  inline WorkgroupGeometry WorkgroupFromDomainGrid(size_t cols, size_t rows) {
+  template<typename T> Base::WorkgroupGeometry WorkgroupFromDomainGrid(size_t cols, size_t rows) {
     auto [blockX, blockY] = T::GetBlockGeometry();
     auto xBlockCount = (cols + blockX - 1) / blockX;
     auto yBlockCount = (rows + blockY - 1) / blockY;
     return {xBlockCount, yBlockCount};
   }
 
-  template <typename T> inline WorkgroupGeometry LaunchScanLtR(size_t cols, size_t rows) {
+  template <typename T> Base::WorkgroupGeometry LaunchScanLtR(size_t cols, size_t rows) {
     auto [blockX, blockY] = T::GetBlockGeometry();
     auto lineOfThread = std::max(blockX, blockY);
     auto yBlockCount = (rows + lineOfThread - 1) / lineOfThread;
     return {yBlockCount, 1};
   }
 
-  template <typename T> inline WorkgroupGeometry LaunchScanTtB(size_t cols, size_t rows) {
+  template <typename T> Base::WorkgroupGeometry LaunchScanTtB(size_t cols, size_t rows) {
     auto [blockX, blockY] = T::GetBlockGeometry();
     auto lineOfThread = std::max(blockX, blockY);
     auto xBlockCount = (rows + lineOfThread - 1) / lineOfThread;

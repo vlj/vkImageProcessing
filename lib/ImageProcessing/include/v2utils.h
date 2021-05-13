@@ -69,7 +69,7 @@ auto CreateTextureSync(vk::Device dev, vk::CommandPool commandPool, vk::Physical
 
 template <vk::Format Format>
 auto TextureToCVMat(vk::Device dev, vk::CommandPool commandPool, vk::PhysicalDeviceMemoryProperties memprop, vk::Queue queue,
-                    vk::DescriptorPool descriptorSetPool, DecoratedState<vk::ImageLayout::eGeneral, Format>&& tex) {
+                    vk::DescriptorPool descriptorSetPool, Base::DecoratedState<vk::ImageLayout::eGeneral, Format> &&tex) {
 
   cv::Mat exportedimg(tex.tex->height, tex.tex->width, internal::GetCVTypeFromFormat(tex.tex->format));
 
@@ -93,14 +93,14 @@ auto TextureToCVMat(vk::Device dev, vk::CommandPool commandPool, vk::PhysicalDev
 struct ShaderList {
 
   
-  v2::copy_h_spv r32fToRgba8Pipeline;
+  Shaders::copy_h_spv r32fToRgba8Pipeline;
 
-  v2::guidedFilterPass1_h_spv helperGuidedFilterPass1;
-  v2::guidedFilterPass2_h_spv helperIntegralPass2;
-  v2::meanAandBPass1_h_spv helperMeanAAndBPass1;
-  v2::meanAandBPass2_h_spv helperMeanAAndBPass2;
-  v2::guidedFilterFinal_h_spv helperFinalPass;
-  v2::averagingISqI_h_spv helperAveraging;
+  Shaders::guidedFilterPass1_h_spv helperGuidedFilterPass1;
+  Shaders::guidedFilterPass2_h_spv helperIntegralPass2;
+  Shaders::meanAandBPass1_h_spv helperMeanAAndBPass1;
+  Shaders::meanAandBPass2_h_spv helperMeanAAndBPass2;
+  Shaders::guidedFilterFinal_h_spv helperFinalPass;
+  Shaders::averagingISqI_h_spv helperAveraging;
 
 
   static ShaderList Build(vk::Device dev) { return ShaderList(dev);

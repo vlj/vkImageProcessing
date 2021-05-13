@@ -8,6 +8,7 @@
     "guidedFilterPass1.h.spv",
     "guidedFilterPass2.h.spv",
     "averagingISqI.h.spv",
+    "test_average.h.spv",
     "copy.h.spv"
     ) | %{
         $filename = $_

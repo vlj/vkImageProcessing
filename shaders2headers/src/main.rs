@@ -78,7 +78,7 @@ fn main() -> io::Result<()> {
 
     let cpp_content = format!("#include \"ShadersCollection.h\"
     
-    const std::vector<uint32_t> v2::{}::bytecode = {{
+    const std::vector<uint32_t> Shaders::{}::bytecode = {{
         {}
     }};", shader_name, asIncludeCode);
 

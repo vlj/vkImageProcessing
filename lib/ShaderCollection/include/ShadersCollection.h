@@ -82,8 +82,7 @@ struct GuidedFilterFinalPass {
 
 } // namespace Shaders
 
-namespace v2 {
-  using namespace Base;
+namespace Shaders {
 #include "generated/meanAandBPass1_h_spv.h"
 #include "generated/meanAandBPass2_h_spv.h"
 #include "generated/guidedFilterFinal_h_spv.h"

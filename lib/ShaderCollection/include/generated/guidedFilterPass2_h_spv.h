@@ -291,16 +291,16 @@ struct guidedFilterPass2_h_spv
 
   [[nodiscard]]
   auto operator()(
-    WorkgroupGeometry workgroupGeometry,
-    StartedCommandBuffer& commandBuffer,
+    Base::WorkgroupGeometry workgroupGeometry,
+    Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_input,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedColumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedSquaredColumnReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedRowReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedSquaredRowReducedMatrix,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &outputMean,
-    DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &outputSquaredMean
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &_input,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedColumnReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedSquaredColumnReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedRowReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &summedSquaredRowReducedMatrix,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &outputMean,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> &outputSquaredMean
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;

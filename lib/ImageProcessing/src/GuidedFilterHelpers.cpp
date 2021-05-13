@@ -11,21 +11,25 @@
 namespace GuidedFilter {
 
   AuxiliarySummer::ImageStorage AuxiliarySummer::BuildImageStorage(vk::Device dev, vk::CommandBuffer cmdbuf, size_t width, size_t height) {
-    auto [columnReducedMatrix, columnReducedMatrixStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width / kSubgroupSize, height, "columnReducedMatrix");
+    auto [columnReducedMatrix, columnReducedMatrixStorage] = Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width / kSubgroupSize, height, "columnReducedMatrix");
     auto [squaredColumnReducedMatrix, squaredColumnReducedMatrixStorage] =
-        v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width / kSubgroupSize, height, "squaredColumnReducedMatrix");
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width / kSubgroupSize, height, "squaredColumnReducedMatrix");
     auto [columnReducedMatrixSummed, columnReducedMatrixSummedStorage] =
-        v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width / kSubgroupSize, height, "columnReducedMatrixSummed");
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width / kSubgroupSize, height, "columnReducedMatrixSummed");
     auto [squaredColumnReducedMatrixSummed, squaredColumnReducedMatrixSummedStorage] =
-        v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width / kSubgroupSize, height, "squaredColumnReducedMatrixSummed");
-    auto [rowReducedMatrix, rowReducedMatrixStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "rowReducedMatrix");
-    auto [squaredRowReducedMatrix, squaredRowReducedMatrixStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "squaredRowReducedMatrix");
-    auto [rowReducedMatrixSummed, rowReducedMatrixSummedStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "rowReducedMatrixSummed");
-    auto [rowReducedMatrixSummed2, rowReducedMatrixSummed2Storage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "rowReducedMatrixSummed2");
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width / kSubgroupSize, height, "squaredColumnReducedMatrixSummed");
+    auto [rowReducedMatrix, rowReducedMatrixStorage] =
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "rowReducedMatrix");
+    auto [squaredRowReducedMatrix, squaredRowReducedMatrixStorage] =
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "squaredRowReducedMatrix");
+    auto [rowReducedMatrixSummed, rowReducedMatrixSummedStorage] =
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "rowReducedMatrixSummed");
+    auto [rowReducedMatrixSummed2, rowReducedMatrixSummed2Storage] =
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "rowReducedMatrixSummed2");
     auto [squaredRowReducedMatrixSummed, squaredRowReducedMatrixSummedStorage] =
-        v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "squaredRowReducedMatrixSummed");
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "squaredRowReducedMatrixSummed");
     auto [squaredRowReducedMatrixSummed2, squaredRowReducedMatrixSummed2Storage] =
-        v2::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "squaredRowReducedMatrixSummed2");
+        Base::CreateTexture<vk::Format::eR32Sfloat>(dev, width, height / kSubgroupSize, "squaredRowReducedMatrixSummed2");
 
     return {
         std::move(columnReducedMatrixStorage),
@@ -38,22 +42,22 @@ namespace GuidedFilter {
         std::move(rowReducedMatrixSummed2Storage),
         std::move(squaredRowReducedMatrixSummedStorage),
         std::move(squaredRowReducedMatrixSummed2Storage),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(columnReducedMatrix)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredColumnReducedMatrix)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(columnReducedMatrixSummed)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredColumnReducedMatrixSummed)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(rowReducedMatrix)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredRowReducedMatrix)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(rowReducedMatrixSummed)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(rowReducedMatrixSummed2)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredRowReducedMatrixSummed)),
-        v2::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredRowReducedMatrixSummed2)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(columnReducedMatrix)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredColumnReducedMatrix)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(columnReducedMatrixSummed)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredColumnReducedMatrixSummed)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(rowReducedMatrix)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredRowReducedMatrix)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(rowReducedMatrixSummed)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(rowReducedMatrixSummed2)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredRowReducedMatrixSummed)),
+        Base::Transition<vk::ImageLayout::eGeneral>(cmdbuf, std::move(squaredRowReducedMatrixSummed2)),
     };
   }
 
   AuxiliarySummer::AuxiliarySummer(Renderer &_renderer) : renderer(_renderer), helperVertical(renderer), helperHorizontal(renderer) {}
 
-  void AuxiliarySummer::draw(v2::StartedCommandBuffer &commandBuffer, ImageStorage &imageStorage) {
+  void AuxiliarySummer::draw(Base::StartedCommandBuffer &commandBuffer, ImageStorage &imageStorage) {
     helperVertical(commandBuffer, imageStorage.rowReducedMatrix, imageStorage.rowReducedMatrixSummed);
     helperVertical(commandBuffer, imageStorage.squaredRowReducedMatrix, imageStorage.squaredRowReducedMatrixSummed);
 
@@ -61,24 +65,24 @@ namespace GuidedFilter {
     helperHorizontal(commandBuffer, imageStorage.squaredColumnReducedMatrix, imageStorage.squaredColumnReducedMatrixSummed);
 
     imageStorage.rowReducedMatrixSummed =
-        v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.rowReducedMatrixSummed));
+        Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.rowReducedMatrixSummed));
     imageStorage.squaredRowReducedMatrixSummed =
-        v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.squaredRowReducedMatrixSummed));
+        Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.squaredRowReducedMatrixSummed));
 
     helperHorizontal(commandBuffer, imageStorage.rowReducedMatrixSummed, imageStorage.rowReducedMatrixSummed2);
     helperHorizontal(commandBuffer, imageStorage.squaredRowReducedMatrixSummed, imageStorage.squaredRowReducedMatrixSummed2);
 
     imageStorage.rowReducedMatrixSummed2 =
-        v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.rowReducedMatrixSummed2));
+        Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.rowReducedMatrixSummed2));
 
     imageStorage.squaredRowReducedMatrixSummed2 =
-        v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.squaredRowReducedMatrixSummed2));
+        Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.squaredRowReducedMatrixSummed2));
 
     imageStorage.columnReducedMatrixSummed =
-        v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.columnReducedMatrixSummed));
+        Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.columnReducedMatrixSummed));
 
     imageStorage.squaredColumnReducedMatrixSummed =
-        v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.squaredColumnReducedMatrixSummed));
+        Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(imageStorage.squaredColumnReducedMatrixSummed));
   }
 
 
@@ -86,14 +90,16 @@ namespace GuidedFilter {
                                                      vk::PhysicalDeviceMemoryProperties memprop,
                                           vk::Queue queue, vk::DescriptorPool descriptorSetPool, const cv::Mat &img) {
 
-      auto [teximageIntegral, teximageIntegralStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "integralImage");
-      auto [texsquaredImageIntegral, texsquaredImageIntegralStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "squaredIntegralImage");
-      auto [meanA, meanAStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "meanA");
-      auto [meanI, meanIStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "meanI");
-      auto [meanSqI, meanSqIStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "meanSqI");
-      auto [meanB, meanBStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "meanB");
-      auto [result, resultStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "result");
-      auto cmdBuf = v2::CreateOneShotStartedBuffer(dev, commandPool);
+      auto [teximageIntegral, teximageIntegralStorage] =
+          Base::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "integralImage");
+      auto [texsquaredImageIntegral, texsquaredImageIntegralStorage] =
+          Base::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "squaredIntegralImage");
+      auto [meanA, meanAStorage] = Base::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "meanA");
+      auto [meanI, meanIStorage] = Base::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "meanI");
+      auto [meanSqI, meanSqIStorage] = Base::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "meanSqI");
+      auto [meanB, meanBStorage] = Base::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "meanB");
+      auto [result, resultStorage] = Base::CreateTexture<vk::Format::eR32Sfloat>(dev, img.cols, img.rows, "result");
+      auto cmdBuf = Base::CreateOneShotStartedBuffer(dev, commandPool);
 
       ImageStorage returnValue{
           size_t(img.cols),
@@ -106,17 +112,17 @@ namespace GuidedFilter {
           std::move(meanSqIStorage),
           std::move(meanBStorage),
           std::move(resultStorage),
-          v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(teximageIntegral)),
-          v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(texsquaredImageIntegral)),
-          v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(meanA)),
-          v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(meanI)),
-          v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(meanSqI)),
-          v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(meanB)),
-          v2::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(result)),
+          Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(teximageIntegral)),
+          Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(texsquaredImageIntegral)),
+          Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(meanA)),
+          Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(meanI)),
+          Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(meanSqI)),
+          Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(meanB)),
+          Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(result)),
       };
 
-      auto [fence, commandBuffer] = v2::SubmitBuffer(dev, queue, v2::EndBufferRecording(std::move(cmdBuf)));
-      v2::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
+      auto [fence, commandBuffer] = Base::SubmitBuffer(dev, queue, Base::EndBufferRecording(std::move(cmdBuf)));
+      Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
       return returnValue;
     }
 
@@ -124,26 +130,26 @@ namespace GuidedFilter {
     IntegralImageHelper::IntegralImageHelper(Renderer &_renderer) : renderer(_renderer), aux(renderer) {}
 
     void IntegralImageHelper::draw(v2::utils::ShaderList &shaderList, ImageStorage &storedImage,
-                                 v2::DecoratedState<vk::ImageLayout::eGeneral> &tex,
-              v2::StartedCommandBuffer &commandBuffer, size_t width, size_t height) {
+                                   Base::DecoratedState<vk::ImageLayout::eGeneral> &tex, Base::StartedCommandBuffer &commandBuffer,
+                                   size_t width, size_t height) {
       std::list<vk::UniqueBuffer> currentBufferList;
       std::list<vk::UniqueDeviceMemory> currentMemoryList;
 
       {
-        v2::RegionMarker marker(*commandBuffer, "Compute meanI and mean I Square", {1.f, 1.f, 0.f, 1.f});
+        Base::RegionMarker marker(*commandBuffer, "Compute meanI and mean I Square", {1.f, 1.f, 0.f, 1.f});
         shaderList.helperGuidedFilterPass1(v2::WorkgroupFromDomainGrid<Shaders::GuidedFilterPass1>(width, height), commandBuffer,
                                            *renderer.descriptorSetPool, tex, storedImage.auxiliaryImage.columnReducedMatrix,
                                            storedImage.auxiliaryImage.squaredColumnReducedMatrix,
                                            storedImage.auxiliaryImage.rowReducedMatrix, storedImage.auxiliaryImage.squaredRowReducedMatrix);
 
         storedImage.auxiliaryImage.columnReducedMatrix =
-            v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.auxiliaryImage.columnReducedMatrix));
+            Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.auxiliaryImage.columnReducedMatrix));
         storedImage.auxiliaryImage.squaredColumnReducedMatrix =
-            v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.auxiliaryImage.squaredColumnReducedMatrix));
+            Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.auxiliaryImage.squaredColumnReducedMatrix));
         storedImage.auxiliaryImage.rowReducedMatrix =
-            v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.auxiliaryImage.rowReducedMatrix));
+            Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.auxiliaryImage.rowReducedMatrix));
         storedImage.auxiliaryImage.squaredRowReducedMatrix =
-            v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.auxiliaryImage.squaredRowReducedMatrix));
+            Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.auxiliaryImage.squaredRowReducedMatrix));
 
         aux.draw(commandBuffer, storedImage.auxiliaryImage);
 
@@ -159,7 +165,7 @@ namespace GuidedFilter {
                                  storedImage.meanI, storedImage.meanSqI);
 
       {
-        v2::RegionMarker marker(*commandBuffer, "Compute meanA, meanB and output", {1.f, 0.f, 1.f, 1.f});
+        Base::RegionMarker marker(*commandBuffer, "Compute meanA, meanB and output", {1.f, 0.f, 1.f, 1.f});
 
         shaderList.helperMeanAAndBPass1(v2::WorkgroupFromDomainGrid<Shaders::MeanAAndBPass1>(width, height), commandBuffer,
                                         *renderer.descriptorSetPool, storedImage.meanI, storedImage.meanSqI,
@@ -178,7 +184,7 @@ namespace GuidedFilter {
         shaderList.helperFinalPass(v2::WorkgroupFromDomainGrid<Shaders::GuidedFilterFinalPass>(width, height), commandBuffer,
                                    *renderer.descriptorSetPool, tex, storedImage.meanA, storedImage.meanB, storedImage.result);
 
-        storedImage.result = v2::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.result));
+        storedImage.result = Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(storedImage.result));
       }
     }
 

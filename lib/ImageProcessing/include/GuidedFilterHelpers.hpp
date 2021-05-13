@@ -28,19 +28,19 @@ struct AuxiliarySummer {
     std::unique_ptr<Base::Texture> squaredRowReducedMatrixSummedStorage;
     std::unique_ptr<Base::Texture> squaredRowReducedMatrixSummed2Storage;
 
-    v2::DecoratedState<vk::ImageLayout::eGeneral> columnReducedMatrix;
-    v2::DecoratedState<vk::ImageLayout::eGeneral> squaredColumnReducedMatrix;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> columnReducedMatrix;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> squaredColumnReducedMatrix;
 
-    v2::DecoratedState<vk::ImageLayout::eGeneral> columnReducedMatrixSummed;
-    v2::DecoratedState<vk::ImageLayout::eGeneral> squaredColumnReducedMatrixSummed;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> columnReducedMatrixSummed;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> squaredColumnReducedMatrixSummed;
 
-    v2::DecoratedState<vk::ImageLayout::eGeneral> rowReducedMatrix;
-    v2::DecoratedState<vk::ImageLayout::eGeneral> squaredRowReducedMatrix;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> rowReducedMatrix;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> squaredRowReducedMatrix;
 
-    v2::DecoratedState<vk::ImageLayout::eGeneral> rowReducedMatrixSummed;
-    v2::DecoratedState<vk::ImageLayout::eGeneral> rowReducedMatrixSummed2;
-    v2::DecoratedState<vk::ImageLayout::eGeneral> squaredRowReducedMatrixSummed;
-    v2::DecoratedState<vk::ImageLayout::eGeneral> squaredRowReducedMatrixSummed2;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> rowReducedMatrixSummed;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> rowReducedMatrixSummed2;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> squaredRowReducedMatrixSummed;
+    Base::DecoratedState<vk::ImageLayout::eGeneral> squaredRowReducedMatrixSummed2;
   };
 
   IntegralImageHelper::VerticalSummer helperVertical;
@@ -51,7 +51,7 @@ struct AuxiliarySummer {
   static ImageStorage BuildImageStorage(vk::Device dev, vk::CommandBuffer cmdbuf, size_t width, size_t height);
 
   AuxiliarySummer(Renderer &_renderer);
-  void draw(v2::StartedCommandBuffer &commandBuffer, ImageStorage &imageStorage);
+  void draw(Base::StartedCommandBuffer &commandBuffer, ImageStorage &imageStorage);
 };
 
 struct IntegralImageHelper {
@@ -67,13 +67,13 @@ struct IntegralImageHelper {
     std::unique_ptr<Base::Texture> meanAStorage;
     std::unique_ptr<Base::Texture> meanBStorage;
     std::unique_ptr<Base::Texture> resultStorage;
-    v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> teximageIntegral;
-    v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> texsquaredImageIntegral;
-    v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanI;
-    v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanSqI;
-    v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanA;
-    v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanB;
-    v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> result;
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> teximageIntegral;
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> texsquaredImageIntegral;
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanI;
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanSqI;
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanA;
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> meanB;
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR32Sfloat> result;
   };
 
   static ImageStorage BuildImageStorage(vk::Device dev, vk::CommandPool commandPool, vk::PhysicalDeviceMemoryProperties memprop,
@@ -84,7 +84,7 @@ struct IntegralImageHelper {
 
   IntegralImageHelper(Renderer &_renderer);
 
-  void draw(v2::utils::ShaderList &shaderList, ImageStorage &storedImage, v2::DecoratedState<vk::ImageLayout::eGeneral> &tex,
-            v2::StartedCommandBuffer &commandBuffer, size_t width, size_t height);
+  void draw(v2::utils::ShaderList &shaderList, ImageStorage &storedImage, Base::DecoratedState<vk::ImageLayout::eGeneral> &tex,
+            Base::StartedCommandBuffer &commandBuffer, size_t width, size_t height);
 };
 } // namespace
