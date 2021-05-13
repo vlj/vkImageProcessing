@@ -4,7 +4,7 @@
 #include <Context.hpp>
 
 
-namespace v2 {
+namespace Base {
 
 template <vk::ImageLayout Output, vk::ImageLayout Input, vk::Format Format>
 DecoratedState<Output, Format> Transition(vk::CommandBuffer cmdbuf, DecoratedState<Input, Format> &&in) {
@@ -77,4 +77,4 @@ CopyToTexture(StartedCommandBuffer &cmdbuf, DecoratedState<vk::ImageLayout::eTra
   return {std::move(texture.tex)};
 }
 
-} // namespace v2
+} // namespace Base

@@ -41,7 +41,7 @@ SwapChainSupport::SwapChainSupport(Renderer &r, vk::SurfaceKHR surface, size_t w
                         .setSubresourceRange(
                             vk::ImageSubresourceRange().setAspectMask(vk::ImageAspectFlagBits::eColor).setLayerCount(1).setLevelCount(1));
                 swapChainImageViews.emplace_back(r.dev->createImageViewUnique(imgViewInfo));
-                v2::LowLevelTransition<vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eUndefined>(*commandBuffer, img);
+                Base::LowLevelTransition<vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eUndefined>(*commandBuffer, img);
               }
               return dummy;
             })

@@ -21,7 +21,7 @@
 
 
 
-namespace v2 {
+namespace Base {
 
 struct WorkgroupGeometry {
   size_t x;
@@ -112,6 +112,6 @@ template <typename T> void NameObject(vk::Device dev, T object, std::string name
   dev.debugMarkerSetObjectNameEXT(createInfo, dispatcher);
 }
 
-} // namespace v2
+} // namespace Base
 
 #include "Base_impl.hpp"

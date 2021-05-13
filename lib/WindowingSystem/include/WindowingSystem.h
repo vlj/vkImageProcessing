@@ -33,10 +33,10 @@ struct SwapChainSupport {
 };
 
 inline void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue queue, vk::DescriptorPool descriptorSetPool,
-                               v2::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width,
+                               Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width,
                                size_t height, vk::Image presentImage) {
 
-  auto cmdbuf = v2::CreateOneShotStartedBuffer(dev, commandPool);
+  auto cmdbuf = Base::CreateOneShotStartedBuffer(dev, commandPool);
 
   // TODO: Factorise this with transition
   {
@@ -73,9 +73,9 @@ inline void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::
                               {}, barriers);
   }
 
-  auto endedCmdBuffer = v2::EndBufferRecording(std::move(cmdbuf));
+  auto endedCmdBuffer = Base::EndBufferRecording(std::move(cmdbuf));
 
-  auto [fence, usedcmdBuffer] = v2::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
-  v2::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
+  auto [fence, usedcmdBuffer] = Base::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
+  Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
 }
 } // namespace WindowingSystem

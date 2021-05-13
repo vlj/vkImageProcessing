@@ -1,6 +1,6 @@
 #include <Base.hpp>
 
-namespace v2 {
+namespace Base {
 
 StartedCommandBuffer CreateOneShotStartedBuffer(vk::Device dev, vk::CommandPool commandPool) {
   auto commandBufferCreateInfo = vk::CommandBufferAllocateInfo().setCommandBufferCount(1).setCommandPool(commandPool);
