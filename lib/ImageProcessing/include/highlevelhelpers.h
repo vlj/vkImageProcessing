@@ -14,8 +14,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include <Context.h>
-#include <v2api.h>
+#include <Context.hpp>
+#include <Base.hpp>
 
 #include <ShadersCollection.h>
 

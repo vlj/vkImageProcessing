@@ -1,6 +1,16 @@
 #pragma once
 
+#ifdef WIN32
+#include <codeanalysis\warnings.h>
+#pragma warning(push)
+#pragma warning(disable : ALL_CODE_ANALYSIS_WARNINGS)
+#endif
+
 #include <vulkan/vulkan.hpp>
+
+#ifdef WIN32
+#pragma warning(pop)
+#endif
 
 extern vk::DispatchLoaderDynamic dispatcher;
 

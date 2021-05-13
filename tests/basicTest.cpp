@@ -12,7 +12,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "highlevelhelpers.h"
-#include <context.h>
+#include <Context.hpp>
 #include <ShadersCollection.h>
 #include <IntegralImageHelpers.h>
 #include <v2utils.h>

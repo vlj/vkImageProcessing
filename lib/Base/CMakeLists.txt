@@ -3,9 +3,9 @@ find_package(Microsoft.GSL CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 
 add_library(Base
-    include/v2api.h
-    include/Base_impl.h
-    include/Context.h
+    include/Base.hpp
+    include/Base_impl.hpp
+    include/Context.hpp
     include/GPUCommandAsync.hpp
     src/Base.cpp
     src/Context.cpp

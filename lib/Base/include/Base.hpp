@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef WIN32
+#include <codeanalysis\warnings.h>
+#pragma warning(push)
+#pragma warning(disable : ALL_CODE_ANALYSIS_WARNINGS)
+#endif
+
 #include <list>
 #include <memory>
 #include <vector>
@@ -8,6 +14,11 @@
 
 #include <cstddef>
 #include <gsl/gsl>
+
+#ifdef WIN32
+#pragma warning(pop)
+#endif
+
 
 
 namespace v2 {
@@ -103,4 +114,4 @@ template <typename T> void NameObject(vk::Device dev, T object, std::string name
 
 } // namespace v2
 
-#include "Base_impl.h"
+#include "Base_impl.hpp"

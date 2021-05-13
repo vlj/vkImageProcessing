@@ -1,9 +1,9 @@
-#include <Context.h>
+#include <Context.hpp>
 
 #include <ShadersCollection.h>
 #include <highlevelhelpers.h>
 #include <IntegralImageHelpers.h>
-#include <v2api.h>
+#include <Base.hpp>
 
 
 namespace GuidedFilter {
