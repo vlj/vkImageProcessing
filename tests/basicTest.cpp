@@ -60,7 +60,7 @@ TEST_CASE("Misc test", "[API]") {
     cv::Mat img(cv::Size(1024, 1024), CV_8UC4, cv::Scalar(1));
     cv::randu(img, cv::Scalar(0), cv::Scalar(255));
     
-    auto readableTexture = v2::utils::CreateTextureSync<vk::Format::eR8G8B8A8Unorm>(
+    auto [readableTexture, storage] = v2::utils::CreateTextureSync<vk::Format::eR8G8B8A8Unorm>(
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img, "r32fOnes");
     auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                  *renderer.descriptorSetPool, std::move(readableTexture));
@@ -72,11 +72,11 @@ TEST_CASE("Misc test", "[API]") {
 
     cv::Mat img(cv::Size(1536, 1024), CV_32FC1, cv::Scalar(1.f));
 
-    auto readableTexture = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(
+    auto [readableTexture, storage] = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img, "r32fOnes");
 
     auto cmdbuffer = v2::CreateOneShotStartedBuffer(*renderer.dev, *renderer.commandPool);
-    auto textureOut = v2::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, img.cols, img.rows, "convertedOutput");
+    auto [textureOut, storage0] = v2::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, img.cols, img.rows, "convertedOutput");
     auto writeableTextureOut = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(textureOut));
     r32fToRgba8Pipeline({size_t((img.cols + 15) / 16), size_t((img.rows + 15) / 16)}, cmdbuffer, *renderer.descriptorSetPool, readableTexture,
                         writeableTextureOut);
@@ -96,9 +96,9 @@ TEST_CASE("Misc test", "[API]") {
 
     IntegralImageHelper::HorizontalSummer horizontalSummer(renderer);
 
-    auto tex = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
+    auto [tex, texStorage] = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                                     *renderer.descriptorSetPool, img, "inputImage");
-    auto&& texOut = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "horizontalPrefixSumResult");
+    auto [texOut, texOutStorage] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "horizontalPrefixSumResult");
 
     
     auto cmdbuffer = v2::CreateOneShotStartedBuffer(*renderer.dev, *renderer.commandPool);
@@ -122,9 +122,9 @@ TEST_CASE("Misc test", "[API]") {
 
     IntegralImageHelper::VerticalSummer verticalSummer(renderer);
 
-    auto tex = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
+    auto [tex, storage0] = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                                     *renderer.descriptorSetPool, img, "inputImage");
-    auto &&texOut = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "verticalPrefixSumResult");
+    auto [texOut, storage] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "verticalPrefixSumResult");
 
     auto cmdbuffer = v2::CreateOneShotStartedBuffer(*renderer.dev, *renderer.commandPool);
     auto texOutInGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(texOut));
@@ -149,11 +149,11 @@ TEST_CASE("Misc test", "[API]") {
     IntegralImageHelper::HorizontalSummer horizontalSummer(renderer);
     v2::test_average_h_spv averagerFromIntegralImage(*renderer.dev);
     
-    auto tex = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
+    auto [tex, storage] = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                                     *renderer.descriptorSetPool, img, "inputImage");
-    auto horizontallySummed = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "horizontallySummed");
-    auto allSummed = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "AllSummed");
-    auto averaged = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "averaged");
+    auto [horizontallySummed, storage1] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "horizontallySummed");
+    auto [allSummed, storage2] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "AllSummed");
+    auto [averaged, storage3] = v2::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "averaged");
 
     auto cmdbuffer = v2::CreateOneShotStartedBuffer(*renderer.dev, *renderer.commandPool);
     auto horizontallySummedGeneralForm = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummed));

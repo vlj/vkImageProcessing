@@ -52,19 +52,19 @@ auto CreateTextureSync(vk::Device dev, vk::CommandPool commandPool, vk::Physical
   assert(Format == internal::GetFormatFromCVType(img.type()));
   auto cmdbuffer = CreateOneShotStartedBuffer(dev, commandPool);
 
-  auto texture = v2::CreateTexture<Format>(dev, img.cols, img.rows, name);
-  auto textureDest = v2::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdbuffer, std::move(texture));
+  auto [texture, storage] = Base::CreateTexture<Format>(dev, img.cols, img.rows, name);
+  auto textureDest = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdbuffer, std::move(texture));
   auto tmp = gsl::span<const std::byte>(reinterpret_cast<const std::byte*>(img.ptr()), img.cols * img.rows * 4);
-  auto [buffer, buffermem] = v2::GetMemoryBufferFrom(dev, memprop, tmp);
-  auto updatedTexture = v2::CopyToTexture(cmdbuffer, textureDest, *buffer);
-  auto readableTexture = v2::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(updatedTexture));
+  auto [buffer, buffermem] = Base::GetMemoryBufferFrom(dev, memprop, tmp);
+  auto updatedTexture = Base::CopyToTexture(cmdbuffer, textureDest, *buffer);
+  auto readableTexture = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(updatedTexture));
 
-  auto endedCmdBuffer = v2::EndBufferRecording(std::move(cmdbuffer));
+  auto endedCmdBuffer = Base::EndBufferRecording(std::move(cmdbuffer));
 
-  auto [fence, bufferToClean] = v2::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
-  v2::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
+  auto [fence, bufferToClean] = Base::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
+  Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
 
-  return std::move(readableTexture);
+  return std::make_tuple(std::move(readableTexture), std::move(storage));
 }
 
 template <vk::Format Format>

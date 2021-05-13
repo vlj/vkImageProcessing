@@ -49,7 +49,7 @@ template <vk::ImageLayout layout, vk::Format format = vk::Format::eR32Sfloat> st
 
   DecoratedState(DecoratedState<layout, format> &&in) = default;
 
-  std::unique_ptr<Texture> tex;
+  Texture* tex;
 };
 
 template <vk::ImageLayout Output, vk::ImageLayout Input, vk::Format Format>
@@ -80,7 +80,7 @@ template<vk::Format Format>
 auto CopyImageToBuffer(StartedCommandBuffer &cmdbuf, DecoratedState<vk::ImageLayout::eTransferSrcOptimal, Format> &tex, vk::Buffer buffer);
 
 template<vk::Format Format>
-DecoratedState<vk::ImageLayout::eUndefined, Format> CreateTexture(vk::Device dev, int width, int height, std::string name);
+std::tuple<DecoratedState<vk::ImageLayout::eUndefined, Format>, std::unique_ptr<Texture>> CreateTexture(vk::Device dev, int width, int height, std::string name);
 
 std::tuple<vk::UniqueBuffer, vk::UniqueDeviceMemory> getTransientBufferAndMemory(vk::Device dev, vk::PhysicalDeviceMemoryProperties memprop,
                                                                                  size_t copySize);

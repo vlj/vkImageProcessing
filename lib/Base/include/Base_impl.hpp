@@ -55,8 +55,10 @@ auto CopyImageToBuffer(StartedCommandBuffer &cmdbuf, DecoratedState<vk::ImageLay
 }
 
 template <vk::Format Format>
-DecoratedState<vk::ImageLayout::eUndefined, Format> CreateTexture(vk::Device dev, int width, int height, std::string name) {
-  return {std::make_unique<Texture>(dev, width, height, Format, name)};
+std::tuple<DecoratedState<vk::ImageLayout::eUndefined, Format>, std::unique_ptr<Texture>> CreateTexture(vk::Device dev, int width,
+                                                                                                        int height, std::string name) {
+  auto textureStorage = std::make_unique<Texture>(dev, width, height, Format, name);
+  return std::make_tuple(DecoratedState<vk::ImageLayout::eUndefined, Format>{textureStorage.get()}, std::move(textureStorage));
 }
 
 template <vk::Format Format>
