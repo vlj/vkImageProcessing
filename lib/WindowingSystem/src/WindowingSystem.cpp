@@ -25,14 +25,14 @@ SwapChainSupport::SwapChainSupport(Renderer &r, vk::SurfaceKHR surface, size_t w
                                  .setImageUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eColorAttachment)
                                  .setSurface(surface);
   swapChain = r.dev->createSwapchainKHRUnique(swapChainCreateInfo);
-  swapChainImages = r.dev->getSwapchainImagesKHR(*swapChain);
+  //swapChainImages = r.dev->getSwapchainImagesKHR(*swapChain);
 
   extent = capabilities.currentExtent;
 
   Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool)
       .then(renderer.queue,
             [&](auto &commandBuffer, auto &&dummy) {
-              for (auto img : swapChainImages) {
+              for (auto img : r.dev->getSwapchainImagesKHR(*swapChain)) {
                 auto imgViewInfo =
                     vk::ImageViewCreateInfo()
                         .setImage(img)
@@ -41,6 +41,8 @@ SwapChainSupport::SwapChainSupport(Renderer &r, vk::SurfaceKHR surface, size_t w
                         .setSubresourceRange(
                             vk::ImageSubresourceRange().setAspectMask(vk::ImageAspectFlagBits::eColor).setLayerCount(1).setLevelCount(1));
                 swapChainImageViews.emplace_back(r.dev->createImageViewUnique(imgViewInfo));
+                swapChainImages.emplace_back(Base::DecoratedState<vk::ImageLayout::ePresentSrcKHR, vk::Format::eB8G8R8A8Unorm>{
+                    img, *swapChainImageViews.back(), extent.width, extent.height});
                 Base::LowLevelTransition<vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eUndefined>(*commandBuffer, img);
               }
               return dummy;
@@ -68,48 +70,22 @@ void SwapChainSupport::Present(uint32_t idx) {
 }
 
 void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue queue, vk::DescriptorPool descriptorSetPool,
-                               Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width,
-                               size_t height, vk::Image presentImage) {
+                        Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width, size_t height,
+                        Base::DecoratedState<vk::ImageLayout::ePresentSrcKHR, vk::Format::eB8G8R8A8Unorm>& presentImage) {
 
     Base::GPUAsyncUnit(dev, descriptorSetPool, commandPool)
       .then(queue, [&](auto &cmdbuf, auto &&textures) {
-              // TODO: Factorise this with transition
-              {
-                auto barriers =
-                    std::vector({vk::ImageMemoryBarrier()
-                                     .setImage(presentImage)
-                                     .setOldLayout(vk::ImageLayout::ePresentSrcKHR)
-                                     .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
-                                     .setSrcAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-                                     .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-                                     .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
-                                         vk::ImageAspectFlagBits::eColor))});
-                (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands,
-                                          vk::DependencyFlags(), {}, {}, barriers);
-              }
+              auto transferDstPreset = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdbuf, std::move(presentImage));
 
               auto regions = std::vector(
                   {vk::ImageCopy()
                        .setExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
                        .setSrcSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))
                        .setDstSubresource(vk::ImageSubresourceLayers().setLayerCount(1).setAspectMask(vk::ImageAspectFlagBits::eColor))});
-              (*cmdbuf).copyImage(texout.image, vk::ImageLayout::eGeneral, presentImage, vk::ImageLayout::eTransferDstOptimal,
+              (*cmdbuf).copyImage(texout.image, vk::ImageLayout::eGeneral, transferDstPreset.image, vk::ImageLayout::eTransferDstOptimal,
                                   regions);
 
-              // TODO: Factorise this with transition
-              {
-                auto barriers =
-                    std::vector({vk::ImageMemoryBarrier()
-                                     .setImage(presentImage)
-                                     .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
-                                     .setNewLayout(vk::ImageLayout::ePresentSrcKHR)
-                                     .setSrcAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-                                     .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-                                     .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
-                                         vk::ImageAspectFlagBits::eColor))});
-                (*cmdbuf).pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands,
-                                          vk::DependencyFlags(), {}, {}, barriers);
-              }
+              presentImage = Base::Transition<vk::ImageLayout::ePresentSrcKHR>(*cmdbuf, std::move(transferDstPreset));
               return std::make_tuple();
       })
       .Sync();

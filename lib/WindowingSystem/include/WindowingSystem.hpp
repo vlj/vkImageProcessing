@@ -40,11 +40,11 @@ struct SwapChainSupport {
   void Present(uint32_t idx);
 
   vk::UniqueSwapchainKHR swapChain;
-  std::vector<vk::Image> swapChainImages;
+  std::vector<Base::DecoratedState<vk::ImageLayout::ePresentSrcKHR, vk::Format::eB8G8R8A8Unorm>> swapChainImages;
   std::vector<vk::UniqueImageView> swapChainImageViews;
 };
 
 void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue queue, vk::DescriptorPool descriptorSetPool,
                         Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width, size_t height,
-                        vk::Image presentImage);
+                        Base::DecoratedState < vk::ImageLayout::ePresentSrcKHR, vk::Format::eB8G8R8A8Unorm>& presentImage);
 } // namespace WindowingSystem
