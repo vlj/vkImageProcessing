@@ -1,8 +1,8 @@
 add_library(VkImageProcessing
-    include/GuidedFilterHelpers.h
+    include/GuidedFilterHelpers.hpp
     include/IntegralImageHelpers.h
-    "include/v2utils.h"
-    src/highlevelhelpers.cpp
+    include/v2utils.h
+    src/GuidedFilterHelpers.cpp
 )
 
 target_link_libraries(VkImageProcessing PUBLIC Base ShaderCollection opencv_core opencv_imgcodecs opencv_highgui)

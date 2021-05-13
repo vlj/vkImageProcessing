@@ -14,7 +14,7 @@
 #include <v2utils.h>
 #include <GPUCommandAsync.hpp>
 
-#include <GuidedFilterHelpers.h>
+#include <GuidedFilterHelpers.hpp>
 #include <IntegralImageHelpers.h>
 #include <ShadersCollection.h>
 #include <highlevelhelpers.h>
@@ -60,7 +60,6 @@ int main() {
     Renderer renderer(physDev[0], deviceextensions);
     auto swapChain = WindowingSystem::SwapChainSupport(renderer, *surface, img.cols, img.rows);
 
-    auto helper = HighLevelHelpers(renderer);
     auto shaderList = v2::utils::ShaderList::Build(*renderer.dev);
 
     size_t width = img.cols;
