@@ -1,6 +1,7 @@
 add_library(VkImageProcessing
     include/GuidedFilterHelpers.hpp
     include/IntegralImageHelpers.h
+    include/highlevelhelpers.h
     include/v2utils.h
     src/GuidedFilterHelpers.cpp
 )
