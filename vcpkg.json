@@ -1,0 +1,10 @@
+{
+  "name": "vkimageprocessing",
+  "version-string": "0.1",
+  "dependencies": [
+    "ms-gsl",
+    "catch",
+    "glfw3",
+    "opencv4"
+  ]
+}
