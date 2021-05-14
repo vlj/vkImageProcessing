@@ -29,7 +29,7 @@ SwapChainSupport::SwapChainSupport(Renderer &r, vk::SurfaceKHR surface, size_t w
 
   extent = capabilities.currentExtent;
 
-  Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool)
+  Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple())
       .then(renderer.queue,
             [&](auto &commandBuffer, auto &&dummy) {
               for (auto img : r.dev->getSwapchainImagesKHR(*swapChain)) {
@@ -73,7 +73,7 @@ void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue q
                         Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width, size_t height,
                         Base::DecoratedState<vk::ImageLayout::ePresentSrcKHR, vk::Format::eB8G8R8A8Unorm>& presentImage) {
 
-    Base::GPUAsyncUnit(dev, descriptorSetPool, commandPool)
+    Base::GPUAsyncUnit(dev, descriptorSetPool, commandPool, std::make_tuple())
       .then(queue, [&](auto &cmdbuf, auto &&textures) {
               auto transferDstPreset = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdbuf, std::move(presentImage));
 

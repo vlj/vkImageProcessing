@@ -4,47 +4,64 @@
 
 namespace Base {
 
-template <typename TextureStatesTuple> struct GPUAsyncCommand {
+struct TemporaryThings {
+  std::list<vk::UniqueFence> fences;
+  std::list<vk::UniqueCommandBuffer> commandBuffers;
+};
+
+template <typename TextureStatesTuple, typename CallbackType> struct GPUAsyncCommand {
   vk::Device dev;
   vk::DescriptorPool descriptorSetPool;
   vk::CommandPool commandPool;
-  std::list<vk::UniqueFence> fences;
-  std::list<vk::UniqueCommandBuffer> commandBuffers;
+
   TextureStatesTuple textureStates;
 
-  GPUAsyncCommand(vk::Device _dev, vk::DescriptorPool _descriptorSetPool, vk::CommandPool _commandPool, TextureStatesTuple &&tuple)
-      : dev(_dev), descriptorSetPool(_descriptorSetPool), commandPool(_commandPool), textureStates(std::move(tuple)) {}
+
+
+  CallbackType toCall;
+
+  GPUAsyncCommand(vk::Device _dev, vk::DescriptorPool _descriptorSetPool, vk::CommandPool _commandPool, TextureStatesTuple &&tuple,
+                  CallbackType&& f)
+      : dev(_dev), descriptorSetPool(_descriptorSetPool), commandPool(_commandPool), textureStates(std::move(tuple)), toCall(std::move(f)) {}
 
   template <typename FuncType> auto then(vk::Queue queue, FuncType f) {
     auto startedCommandBuffer = Base::CreateOneShotStartedBuffer(dev, commandPool);
     auto newTextureStates = f(startedCommandBuffer, std::move(textureStates));
     auto endedCommandBuffer = Base::EndBufferRecording(std::move(startedCommandBuffer));
-    auto [fence, cmdbuf] = Base::SubmitBuffer(dev, queue, std::move(endedCommandBuffer));
 
-    fences.push_back(std::move(fence));
-    commandBuffers.push_back(std::move(cmdbuf));
+    auto newToCall = [this, toCall = std::move(toCall), queue, endedCommandBuffer = std::move(endedCommandBuffer)](TemporaryThings &&previous) mutable {
+      previous = toCall(std::move(previous));
 
-    auto args = std::tuple_cat(std::make_tuple(dev, descriptorSetPool, commandPool), std::move(newTextureStates));
-    auto result = std::apply([](auto &&...a) { return GPUAsyncUnit(std::move(a)...); }, std::move(args));
-    result.fences = std::move(fences);
-    result.commandBuffers = std::move(commandBuffers);
+      auto [fence, cmdbuf] = Base::SubmitBuffer(dev, queue, std::move(endedCommandBuffer));
+
+      previous.fences.push_back(std::move(fence));
+      previous.commandBuffers.push_back(std::move(cmdbuf));
+      return std::move(previous);
+    };
+
+    auto result = GPUAsyncUnit(dev, descriptorSetPool, commandPool, std::move(newTextureStates), std::move(newToCall));
     return std::move(result);
   }
 
   auto Sync() {
-    for (auto &f : fences) {
+    auto collected = toCall(TemporaryThings{});
+    for (auto &f : collected.fences) {
       Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*f));
     }
-    fences.clear();
-    commandBuffers.clear();
     return std::move(textureStates);
   }
 };
 
-template <typename... TextureStates>
-GPUAsyncCommand<std::tuple<TextureStates...>> GPUAsyncUnit(vk::Device _dev, vk::DescriptorPool _descriptorSetPool,
-                                                           vk::CommandPool _commandPool, TextureStates &&...t) {
-  return {_dev, _descriptorSetPool, _commandPool, std::make_tuple(std::move(t)...)};
+template <typename TextureStateTuple, typename CallbackType>
+auto GPUAsyncUnit(vk::Device _dev, vk::DescriptorPool _descriptorSetPool, vk::CommandPool _commandPool, TextureStateTuple &&t,
+                  CallbackType &&f) {
+  return GPUAsyncCommand(_dev, _descriptorSetPool, _commandPool, std::move(t), std::move(f));
+}
+
+template <typename TextureStateTuple>
+auto GPUAsyncUnit(vk::Device _dev, vk::DescriptorPool _descriptorSetPool, vk::CommandPool _commandPool, TextureStateTuple &&t) {
+  auto defaultFunc = [](TemporaryThings &&in) { return std::move(in); };
+  return GPUAsyncCommand(_dev, _descriptorSetPool, _commandPool, std::move(t), std::move(defaultFunc));
 }
 
 } // namespace Base

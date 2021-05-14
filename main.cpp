@@ -80,8 +80,8 @@ int main() {
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img);
 
     auto newTexturesState =
-        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(texrgba8Undef),
-                                std::move(texUndef))
+        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple(std::move(texrgba8Undef),
+                                std::move(texUndef)))
             .then(renderer.queue,
                   [&](auto &cmdBuffer, auto &&textureState) {
                     auto [rgba8undef, texundef] = std::move(textureState);
@@ -101,7 +101,7 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
-      Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool)
+      Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple())
           .then(renderer.queue,
                 [&](auto &cmdbuffer, auto &&textureStates) {
                   IIH.draw(shaderList, guidedFilterResources, tex, cmdbuffer, width, height);
