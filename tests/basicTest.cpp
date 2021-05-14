@@ -76,14 +76,20 @@ TEST_CASE("Misc test", "[API]") {
     auto [readableTexture, storage] = v2::utils::CreateTextureSync<vk::Format::eR32Sfloat>(
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img, "r32fOnes");
 
-    auto cmdbuffer = Base::CreateOneShotStartedBuffer(*renderer.dev, *renderer.commandPool);
     auto [textureOut, storage0] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, img.cols, img.rows, "convertedOutput");
-    auto writeableTextureOut = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(textureOut));
-    r32fToRgba8Pipeline({size_t((img.cols + 15) / 16), size_t((img.rows + 15) / 16)}, cmdbuffer, *renderer.descriptorSetPool, readableTexture,
-                        writeableTextureOut);
-    auto endedCmdBuffer = Base::EndBufferRecording(std::move(cmdbuffer));
-    auto [fence, bufferToClean] = Base::SubmitBuffer(*renderer.dev, renderer.queue, std::move(endedCmdBuffer));
-    Base::WaitAndReset(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::move(*fence));
+
+    auto [writeableTextureOut] =
+        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool,
+                           std::make_tuple(std::move(readableTexture), std::move(textureOut)))
+            .then(renderer.queue,
+                  [&](auto &commandBuffer, auto &&state) {
+                    auto [readableTexture, textureOut] = std::move(state);
+                    auto writeableTextureOut = Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(textureOut));
+                    r32fToRgba8Pipeline({size_t((img.cols + 15) / 16), size_t((img.rows + 15) / 16)}, commandBuffer,
+                                        *renderer.descriptorSetPool, readableTexture, writeableTextureOut);
+                    return std::make_tuple(std::move(writeableTextureOut));
+                  })
+            .Sync();
 
     auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                  *renderer.descriptorSetPool, std::move(writeableTextureOut));
