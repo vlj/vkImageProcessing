@@ -1,0 +1,69 @@
+{
+    "version": 2,
+    "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 20,
+      "patch": 0
+    },
+    "configurePresets": [
+      {
+        "name": "base",
+        "description": "Sets generator, build and install directory, vcpkg",
+        "hidden": true,
+        "binaryDir": "${sourceDir}/out/build/${presetName}",
+        "cacheVariables": {
+          "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+          "CMAKE_TOOLCHAIN_FILE": {
+            "type": "FILEPATH",
+            "value": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          }
+        }
+      },
+      {
+        "name": "x64-windows-debug",
+        "description": "Sets x64 arch, compilers, build type",
+        "inherits": [ "base" ],
+        "generator": "Visual Studio 16 2019",
+        "architecture": {
+          "value": "x64",
+          "strategy": "external"
+        },
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        },
+        "vendor": {
+          "microsoft.com/VisualStudioSettings/CMake/1.0": {
+            "hostOS": [ "Windows" ]
+          }
+        }
+      }
+    ],
+    "buildPresets": [
+      {
+        "name": "core-build",
+        "description": "Inherits environment from base configurePreset",
+        "configurePreset": "base",
+        "hidden": true,
+        "inheritConfigureEnvironment": true
+  
+      },
+      {
+        "name": "clean-build",
+        "description": "Clean before build (--clean-first)",
+        "configurePreset": "x64-windows-debug",
+        "inherits": "core-build",
+        "cleanFirst": true
+      }
+    ],
+    "testPresets": [
+      {
+        "name": "core-test",
+        "description": "Enable output on failure",
+        "configurePreset": "base",
+        "hidden": false,
+        "output": {
+          "outputOnFailure": true
+        }
+      }
+    ]
+  }
