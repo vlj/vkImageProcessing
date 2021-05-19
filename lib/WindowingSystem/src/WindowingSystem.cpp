@@ -29,9 +29,9 @@ SwapChainSupport::SwapChainSupport(Renderer &r, vk::SurfaceKHR surface, size_t w
 
   extent = capabilities.currentExtent;
 
-  Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple())
-      .then(renderer.queue,
-            [&](auto &commandBuffer, auto &&dummy) {
+  Base::MakeGPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple())
+      .then(
+            [&](auto &&commandBuffer, auto &&dummy) {
               for (auto img : r.dev->getSwapchainImagesKHR(*swapChain)) {
                 auto imgViewInfo =
                     vk::ImageViewCreateInfo()
@@ -45,7 +45,8 @@ SwapChainSupport::SwapChainSupport(Renderer &r, vk::SurfaceKHR surface, size_t w
                     img, *swapChainImageViews.back(), extent.width, extent.height});
                 Base::LowLevelTransition<vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eUndefined>(*commandBuffer, img);
               }
-              return dummy;
+              return Base::MakeGPUAsync(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
+                                   std::move(commandBuffer), dummy);
             })
       .Sync();
 }
@@ -73,8 +74,8 @@ void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue q
                         Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &texout, size_t width, size_t height,
                         Base::DecoratedState<vk::ImageLayout::ePresentSrcKHR, vk::Format::eB8G8R8A8Unorm>& presentImage) {
 
-    Base::GPUAsyncUnit(dev, descriptorSetPool, commandPool, std::make_tuple())
-      .then(queue, [&](auto &cmdbuf, auto &&textures) {
+    Base::MakeGPUAsyncUnit(dev, descriptorSetPool, commandPool, std::make_tuple())
+      .then([&](auto &&cmdbuf, auto &&textures) {
               auto transferDstPreset = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdbuf, std::move(presentImage));
 
               auto regions = std::vector(
@@ -86,7 +87,8 @@ void CopyToPresentImage(vk::Device dev, vk::CommandPool commandPool, vk::Queue q
                                   regions);
 
               presentImage = Base::Transition<vk::ImageLayout::ePresentSrcKHR>(*cmdbuf, std::move(transferDstPreset));
-              return std::make_tuple();
+              return Base::MakeGPUAsync(dev, descriptorSetPool, commandPool, queue, std::move(cmdbuf),
+                                   std::make_tuple());
       })
       .Sync();
 }

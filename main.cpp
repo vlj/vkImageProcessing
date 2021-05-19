@@ -80,7 +80,7 @@ int main() {
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img);
 
     auto newTexturesState =
-        Base::MakeGPUAsyncUnit2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool,
+        Base::MakeGPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool,
                                 std::make_tuple(std::move(texrgba8Undef), std::move(texUndef)))
             .then([&](auto &cmdBuffer, auto &&textureState) {
               auto [rgba8undef, texundef] = std::move(textureState);
@@ -91,7 +91,7 @@ int main() {
               auto updatedTexture = Base::CopyToTexture(cmdBuffer, textureDest, *buffer);
               auto readableTexture = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(updatedTexture));
               auto tex = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(readableTexture));
-              return Base::MakeGPUAsync2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
+              return Base::MakeGPUAsync(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
                                          std::move(cmdBuffer), std::make_tuple(std::move(rgba8), std::move(tex)));
             })
             .Sync();
@@ -101,13 +101,13 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
-      Base::MakeGPUAsyncUnit2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple())
+      Base::MakeGPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple())
           .then(
                 [&](auto &&cmdbuffer, auto &&textureStates) {
                   IIH.draw(shaderList, guidedFilterResources, tex, cmdbuffer, width, height);
                   shaderList.r32fToRgba8Pipeline({size_t((width + 15) / 16), size_t((height + 15) / 16)}, cmdbuffer,
                                                  *renderer.descriptorSetPool, guidedFilterResources.result, texrgba8);
-                  return Base::MakeGPUAsync2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
+                  return Base::MakeGPUAsync(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
                                        std::move(cmdbuffer), std::move(textureStates));
                 })
           .Sync();
