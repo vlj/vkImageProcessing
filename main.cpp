@@ -80,20 +80,20 @@ int main() {
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img);
 
     auto newTexturesState =
-        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple(std::move(texrgba8Undef),
-                                std::move(texUndef)))
-            .then(renderer.queue,
-                  [&](auto &cmdBuffer, auto &&textureState) {
-                    auto [rgba8undef, texundef] = std::move(textureState);
-                    auto rgba8 = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(rgba8undef));
+        Base::MakeGPUAsyncUnit2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool,
+                                std::make_tuple(std::move(texrgba8Undef), std::move(texUndef)))
+            .then([&](auto &cmdBuffer, auto &&textureState) {
+              auto [rgba8undef, texundef] = std::move(textureState);
+              auto rgba8 = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(rgba8undef));
 
-                    auto textureDest = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdBuffer, std::move(texundef));
+              auto textureDest = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdBuffer, std::move(texundef));
 
-                    auto updatedTexture = Base::CopyToTexture(cmdBuffer, textureDest, *buffer);
-                    auto readableTexture = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(updatedTexture));
-                    auto tex = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(readableTexture));
-                    return std::make_tuple(std::move(rgba8), std::move(tex));
-                  })
+              auto updatedTexture = Base::CopyToTexture(cmdBuffer, textureDest, *buffer);
+              auto readableTexture = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(updatedTexture));
+              auto tex = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(readableTexture));
+              return Base::MakeGPUAsync2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
+                                         std::move(cmdBuffer), std::make_tuple(std::move(rgba8), std::move(tex)));
+            })
             .Sync();
     auto texrgba8 = std::move(std::get<0>(newTexturesState));
     auto tex = std::move(std::get<1>(newTexturesState));
@@ -101,13 +101,14 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
-      Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple())
-          .then(renderer.queue,
-                [&](auto &cmdbuffer, auto &&textureStates) {
+      Base::MakeGPUAsyncUnit2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple())
+          .then(
+                [&](auto &&cmdbuffer, auto &&textureStates) {
                   IIH.draw(shaderList, guidedFilterResources, tex, cmdbuffer, width, height);
                   shaderList.r32fToRgba8Pipeline({size_t((width + 15) / 16), size_t((height + 15) / 16)}, cmdbuffer,
                                                  *renderer.descriptorSetPool, guidedFilterResources.result, texrgba8);
-                  return std::move(textureStates);
+                  return Base::MakeGPUAsync2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
+                                       std::move(cmdbuffer), std::move(textureStates));
                 })
           .Sync();
       auto idx = swapChain.GetPresentImage();

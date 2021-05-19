@@ -107,14 +107,15 @@ TEST_CASE("Misc test", "[API]") {
                                                                     *renderer.descriptorSetPool, img, "inputImage");
     auto [texOut, texOutStorage] = Base::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "horizontalPrefixSumResult");
 
-    auto [texOutInGeneralForm] =
-        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple(std::move(tex), std::move(texOut)))
-            .then(renderer.queue,
-                  [&](auto &cmdBuffer, auto &&textures) {
+    auto [texOutInGeneralForm] = Base::MakeGPUAsyncUnit2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool,
+                                                         std::make_tuple(std::move(tex), std::move(texOut)))
+            .then(
+                  [&](auto &&cmdBuffer, auto &&textures) {
                     auto [tex, texOut] = std::move(textures);
                     auto texOutInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuffer, std::move(texOut));
                     horizontalSummer(cmdBuffer, tex, texOutInGeneralForm);
-                    return std::make_tuple(std::move(texOutInGeneralForm));
+                    return Base::MakeGPUAsync2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
+                                         std::move(cmdBuffer), std::make_tuple(std::move(texOutInGeneralForm)));
                   })
             .Sync();
     auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
@@ -135,14 +136,15 @@ TEST_CASE("Misc test", "[API]") {
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img, "inputImage");
     auto [texOut, storage] = Base::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "verticalPrefixSumResult");
     auto [texOutInGeneralForm] =
-        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple(std::move(tex), std::move(texOut)))
-            .then(renderer.queue,
-                  [&](auto &cmdbuffer, auto &&textures) {
-                    auto [tex, texOut] = std::move(textures);
-                    auto texOutInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(texOut));
-                    verticalSummer(cmdbuffer, tex, texOutInGeneralForm);
-                    return std::make_tuple(std::move(texOutInGeneralForm));
-                  })
+        Base::MakeGPUAsyncUnit2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool,
+                                std::make_tuple(std::move(tex), std::move(texOut)))
+            .then([&](auto &&cmdbuffer, auto &&textures) {
+              auto [tex, texOut] = std::move(textures);
+              auto texOutInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(texOut));
+              verticalSummer(cmdbuffer, tex, texOutInGeneralForm);
+              return Base::MakeGPUAsync2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
+                                         std::move(cmdbuffer), std::make_tuple(std::move(texOutInGeneralForm)));
+            })
             .Sync();
 
     auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
@@ -168,25 +170,24 @@ TEST_CASE("Misc test", "[API]") {
     auto [averaged, storage3] = Base::CreateTexture<vk::Format::eR32Sfloat>(*renderer.dev, 128, 64, "averaged");
 
     auto [averagedInGeneralForm] =
-        Base::GPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, std::make_tuple(std::move(tex), std::move(horizontallySummed),
-                           std::move(allSummed), std::move(averaged)))
-            .then(renderer.queue,
-                  [&](auto &cmdbuffer, auto &&textures) {
-                    auto [tex, horizontallySummed, allSummed, averaged] = std::move(textures);
-                    auto horizontallySummedGeneralForm =
-                        Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummed));
-                    auto allSummedInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(allSummed));
-                    auto averagedInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(averaged));
+        Base::MakeGPUAsyncUnit2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool,
+                                std::make_tuple(std::move(tex), std::move(horizontallySummed), std::move(allSummed), std::move(averaged)))
+            .then([&](auto &&cmdbuffer, auto &&textures) {
+              auto [tex, horizontallySummed, allSummed, averaged] = std::move(textures);
+              auto horizontallySummedGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummed));
+              auto allSummedInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(allSummed));
+              auto averagedInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(averaged));
 
-                    horizontalSummer(cmdbuffer, tex, horizontallySummedGeneralForm);
-                    horizontallySummedGeneralForm =
-                        Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummedGeneralForm));
-                    verticalSummer(cmdbuffer, horizontallySummedGeneralForm, allSummedInGeneralForm);
-                    allSummedInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(allSummedInGeneralForm));
-                    averagerFromIntegralImage(v2::WorkgroupFromDomainGrid<Shaders::TestAverage>(128, 64), cmdbuffer,
-                                              *renderer.descriptorSetPool, allSummedInGeneralForm, averagedInGeneralForm);
-                    return std::make_tuple(std::move(averagedInGeneralForm));
-                  })
+              horizontalSummer(cmdbuffer, tex, horizontallySummedGeneralForm);
+              horizontallySummedGeneralForm =
+                  Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(horizontallySummedGeneralForm));
+              verticalSummer(cmdbuffer, horizontallySummedGeneralForm, allSummedInGeneralForm);
+              allSummedInGeneralForm = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(allSummedInGeneralForm));
+              averagerFromIntegralImage(v2::WorkgroupFromDomainGrid<Shaders::TestAverage>(128, 64), cmdbuffer, *renderer.descriptorSetPool,
+                                        allSummedInGeneralForm, averagedInGeneralForm);
+              return Base::MakeGPUAsync2(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
+                                         std::move(cmdbuffer), std::make_tuple(std::move(averagedInGeneralForm)));
+            })
             .Sync();
     auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
                                                  *renderer.descriptorSetPool, std::move(averagedInGeneralForm));
