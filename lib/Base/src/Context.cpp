@@ -56,8 +56,9 @@ vk::UniqueDevice createLogicalDevice(vk::PhysicalDevice physDev, std::vector<con
   float queuePriority = 1.0f;
 
   auto queueCreateInfo = vk::DeviceQueueCreateInfo{}.setPQueuePriorities(&queuePriority).setQueueFamilyIndex(0).setQueueCount(1);
+  auto copyQueueCreateInfo = vk::DeviceQueueCreateInfo{}.setPQueuePriorities(&queuePriority).setQueueFamilyIndex(1).setQueueCount(1);
 
-  auto queues = std::vector({queueCreateInfo});
+  auto queues = std::vector({queueCreateInfo, copyQueueCreateInfo});
   auto deviceCreateInfo =
       vk::DeviceCreateInfo{}.setQueueCreateInfos(queues).setPEnabledLayerNames(layers).setPEnabledExtensionNames(extensions);
 

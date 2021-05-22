@@ -127,7 +127,9 @@ Renderer::Renderer(vk::PhysicalDevice _physDev, std::vector<const char *> extens
   memprop = physdev.getMemoryProperties();
   dev = createLogicalDevice(physdev, extensions);
   queue = dev->getQueue(0, 0);
+  copyqueue = dev->getQueue(1, 0);
   commandPool = createCommandPool(*dev, 0);
+  commandPoolForCopy = createCommandPool(*dev, 1);
   auto poolSizes = std::vector({vk::DescriptorPoolSize().setType(vk::DescriptorType::eStorageImage).setDescriptorCount(100000),
                                 vk::DescriptorPoolSize().setType(vk::DescriptorType::eUniformBuffer).setDescriptorCount(100000)});
   auto createInfo = vk::DescriptorPoolCreateInfo().setMaxSets(100000).setPoolSizes(poolSizes);

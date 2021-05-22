@@ -79,15 +79,19 @@ TEST_CASE("Misc test", "[API]") {
     auto [textureOut, storage0] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, img.cols, img.rows, "convertedOutput");
 
     auto [writeableTextureOut] =
-        Base::MakeGPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool,
-                                std::make_tuple(std::move(readableTexture), std::move(textureOut)))
-            .then([&](auto &&commandBuffer, auto &&state) {
-              auto [readableTexture, textureOut] = std::move(state);
-              auto writeableTextureOut = Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(textureOut));
-              r32fToRgba8Pipeline({size_t((img.cols + 15) / 16), size_t((img.rows + 15) / 16)}, commandBuffer, *renderer.descriptorSetPool,
-                                  readableTexture, writeableTextureOut);
-              return Base::MakeGPUAsync(*renderer.dev, *renderer.descriptorSetPool, *renderer.commandPool, renderer.queue,
-                                         std::move(commandBuffer), std::make_tuple(std::move(writeableTextureOut)));
+        Experimental::MakeGPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool,
+                                       std::make_tuple(std::move(readableTexture), std::move(textureOut)))
+            .then([&](auto &&state) {
+
+              return Experimental::MakeGPUAsync(
+                  *renderer.dev, *renderer.descriptorSetPool, {renderer.queue, *renderer.commandPool},
+                  [&, state = std::move(state)](auto &commandBuffer) mutable {
+                    auto &&[readableTexture, textureOut] = std::move(state);
+                    auto writeableTextureOut = Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(textureOut));
+                    r32fToRgba8Pipeline({size_t((img.cols + 15) / 16), size_t((img.rows + 15) / 16)}, commandBuffer,
+                                        *renderer.descriptorSetPool, readableTexture, writeableTextureOut);
+                    return std::make_tuple(std::move(writeableTextureOut));
+                  });
             })
             .Sync();
 

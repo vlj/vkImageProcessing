@@ -23,7 +23,9 @@ struct Renderer {
   vk::PhysicalDevice physdev;
   vk::UniqueDevice dev;
   vk::Queue queue;
+  vk::Queue copyqueue;
   vk::UniqueCommandPool commandPool;
+  vk::UniqueCommandPool commandPoolForCopy;
   vk::UniqueDescriptorPool descriptorSetPool;
   vk::PhysicalDeviceMemoryProperties memprop;
 
