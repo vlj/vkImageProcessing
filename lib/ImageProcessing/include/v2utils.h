@@ -77,17 +77,20 @@ auto TextureToCVMat(vk::Device dev, vk::CommandPool commandPool, vk::PhysicalDev
 
   cv::Mat exportedimg(tex.height, tex.width, internal::GetCVTypeFromFormat(Format));
 
-  auto cmdbuffer = Base::CreateOneShotStartedBuffer(dev, commandPool);
   auto copySize = tex.width * tex.height * 4;
   auto &&[outputBuffer, memory] = Base::getTransientBufferAndMemory(dev, memprop, copySize);
 
-  auto texAsSrc = Base::Transition<vk::ImageLayout::eTransferSrcOptimal>(*cmdbuffer, std::move(tex));
-  Base::CopyImageToBuffer(cmdbuffer, texAsSrc, *outputBuffer);
-
-  auto endedCmdBuffer = Base::EndBufferRecording(std::move(cmdbuffer));
-
-  auto [fence, bufferToClean] = Base::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
-  Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
+  Experimental::MakeGPUAsyncUnit(dev, descriptorSetPool, std::make_tuple(std::move(tex)))
+      .then([&](auto &&state) {
+        return Experimental::MakeGPUAsync(
+            dev, descriptorSetPool, {queue, commandPool}, [&, state = std::move(state)](auto &cmdbuffer) mutable {
+              auto &&[tex] = std::move(state);
+              auto texAsSrc = Base::Transition<vk::ImageLayout::eTransferSrcOptimal>(*cmdbuffer, std::move(tex));
+              Base::CopyImageToBuffer(cmdbuffer, texAsSrc, *outputBuffer);
+              return std::make_tuple();
+            });
+      })
+      .Sync();
   auto exportedImgPtr = gsl::span<std::byte>(reinterpret_cast<std::byte*>(exportedimg.ptr()), 4 * exportedimg.rows * exportedimg.cols);
   Base::CopyFromBuffer(dev, *memory, exportedImgPtr);
   
