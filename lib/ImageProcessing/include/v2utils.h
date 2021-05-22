@@ -18,6 +18,7 @@
 
 #include <Base.hpp>
 #include <ShadersCollection.h>
+#include <GPUCommandAsync.hpp>
 
 namespace v2 {
 
@@ -50,19 +51,22 @@ auto CreateTextureSync(vk::Device dev, vk::CommandPool commandPool, vk::Physical
                        vk::DescriptorPool descriptorSetPool,
                        const cv::Mat &img, std::string name) {
   assert(Format == internal::GetFormatFromCVType(img.type()));
-  auto cmdbuffer = Base::CreateOneShotStartedBuffer(dev, commandPool);
 
   auto [texture, storage] = Base::CreateTexture<Format>(dev, img.cols, img.rows, name);
-  auto textureDest = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdbuffer, std::move(texture));
-  auto tmp = gsl::span<const std::byte>(reinterpret_cast<const std::byte*>(img.ptr()), img.cols * img.rows * 4);
+  auto tmp = gsl::span<const std::byte>(reinterpret_cast<const std::byte *>(img.ptr()), img.cols * img.rows * 4);
   auto [buffer, buffermem] = Base::GetMemoryBufferFrom(dev, memprop, tmp);
-  auto updatedTexture = Base::CopyToTexture(cmdbuffer, textureDest, *buffer);
-  auto readableTexture = Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(updatedTexture));
 
-  auto endedCmdBuffer = Base::EndBufferRecording(std::move(cmdbuffer));
-
-  auto [fence, bufferToClean] = Base::SubmitBuffer(dev, queue, std::move(endedCmdBuffer));
-  Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
+  auto [readableTexture] =
+      Experimental::MakeGPUAsyncUnit(dev, descriptorSetPool, std::make_tuple(std::move(texture)))
+          .then([&](auto &&state) {
+            return Experimental::MakeGPUAsync(dev, descriptorSetPool, {queue, commandPool}, [&, state = std::move(state)](auto &cmdbuffer) mutable {
+                  auto &&[texture] = std::move(state);
+                  auto textureDest = Base::Transition<vk::ImageLayout::eTransferDstOptimal>(*cmdbuffer, std::move(texture));
+                  auto updatedTexture = Base::CopyToTexture(cmdbuffer, textureDest, *buffer);
+                  return std::make_tuple(Base::Transition<vk::ImageLayout::eGeneral>(*cmdbuffer, std::move(updatedTexture)));
+                });
+          })
+          .Sync();
 
   return std::make_tuple(std::move(readableTexture), std::move(storage));
 }
