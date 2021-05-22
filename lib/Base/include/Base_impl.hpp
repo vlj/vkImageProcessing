@@ -14,6 +14,8 @@ DecoratedState<Output, Format> Transition(vk::CommandBuffer cmdbuf, DecoratedSta
                                    .setNewLayout(Output)
                                    .setSrcAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
                                    .setDstAccessMask(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
+                                   .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                                   .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
                                    .setSubresourceRange(vk::ImageSubresourceRange().setLevelCount(1).setLayerCount(1).setAspectMask(
                                        vk::ImageAspectFlagBits::eColor))});
   cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), {}, {},

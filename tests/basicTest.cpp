@@ -63,7 +63,7 @@ TEST_CASE("Misc test", "[API]") {
     
     auto [readableTexture, storage] = v2::utils::CreateTextureSync<vk::Format::eR8G8B8A8Unorm>(
         *renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue, *renderer.descriptorSetPool, img, "r32fOnes");
-    auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPool, renderer.memprop, renderer.queue,
+    auto exportedimg = v2::utils::TextureToCVMat(*renderer.dev, *renderer.commandPoolForCopy, renderer.memprop, renderer.copyqueue,
                                                  *renderer.descriptorSetPool, std::move(readableTexture));
     REQUIRE(IsSame(img, exportedimg));
   }
