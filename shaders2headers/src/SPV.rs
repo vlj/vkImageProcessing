@@ -32,6 +32,7 @@ pub enum ExecutionModel {
     CallableKHR,
 }
 
+#[derive(Copy, Clone)]
 pub enum DescriptorType {
     SAMPLER,
     COMBINED_IMAGE_SAMPLER,
@@ -47,6 +48,7 @@ pub enum DescriptorType {
     ACCELERATION_STRUCTURE_KHR,
 }
 
+#[derive(Copy, Clone)]
 pub enum SpvImageFormat {
     Unknown,
     Rgba32f,
@@ -102,9 +104,25 @@ pub struct SpvReflectImageTraits {
     pub image_format: SpvImageFormat,
 }
 
+pub struct SpvReflectBlockVariable {
+    pub spirv_id: u32,
+    pub name: String,
+    pub offset: u32,
+    pub absolute_offset: u32,
+    pub size: u32,
+    pub padded_size: u32,
+    // pub decoration_flags: SpvReflectDecorationFlags,
+    // pub numeric: SpvReflectNumericTraits,
+    // pub array: SpvReflectArrayTraits,
+    // pub flags: SpvReflectVariableFlags,
+    // pub member_count: u32,
+    pub members: Vec<SpvReflectBlockVariable>,
+    // pub type_description: *mut SpvReflectTypeDescription,
+}
+
 pub enum DescriptorBindingContent {
     Image(SpvReflectImageTraits),
-    Block(raw::SpvReflectBlockVariable),
+    Block(SpvReflectBlockVariable),
     Array(raw::SpvReflectBindingArrayTraits),
     None,
 }
@@ -265,6 +283,30 @@ fn get_image_format(format: raw::SpvImageFormat) -> SpvImageFormat {
     }
 }
 
+fn buildBlock(block : &raw::SpvReflectBlockVariable) -> SpvReflectBlockVariable {
+    let members : Vec<_> =
+        (0..block.member_count).map(|offset| {
+            unsafe {
+                buildBlock(&*block.members.offset(offset as isize))
+            }
+        })
+        .collect();
+
+    SpvReflectBlockVariable {
+        spirv_id: block.spirv_id,
+        name: unsafe {
+            std::ffi::CStr::from_ptr(block.name)
+            .to_str()
+            .unwrap()
+            .to_string()},
+        offset: block.offset,
+        absolute_offset: block.absolute_offset,
+        size: block.size,
+        padded_size: block.padded_size,
+        members: members
+    }
+}
+
 fn Convert(input: &raw::SpvReflectDescriptorBinding) -> SpvReflectDescriptorBinding {
     let name = unsafe {
         std::ffi::CStr::from_ptr(input.name)
@@ -325,6 +367,7 @@ fn Convert(input: &raw::SpvReflectDescriptorBinding) -> SpvReflectDescriptorBind
             image_format: get_image_format(input.image.image_format),
             sampled: input.image.sampled,
         }),
+        | DescriptorType::UNIFORM_BUFFER => DescriptorBindingContent::Block(buildBlock(&input.block)),
         _ => DescriptorBindingContent::None,
     };
 

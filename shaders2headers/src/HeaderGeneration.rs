@@ -193,23 +193,30 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     headerContent.push_str(&createDescriptorSetCode);
 
     let declaration = {
+        let convertFormat = |fmt| {
+            match fmt {
+                SPV::SpvImageFormat::R32f => "eR32Sfloat",
+                SPV::SpvImageFormat::Rgba8 => "eB8G8R8A8Unorm",
+                SPV::SpvImageFormat::Rgba16f => "eR16G16B16A16Sfloat",
+                SPV::SpvImageFormat::Unknown => "eUndefined",
+                _ => panic!("Unsupported texture type")
+            }
+        };
+
+        let convertDescriptorType = |descriptor_type| {
+            match descriptor_type {
+                SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "eShaderReadOnlyOptimal",
+                SPV::DescriptorType::STORAGE_IMAGE => "eGeneral",
+                _ => panic!("Unsupported texture layout")
+            }
+        };
+
         let arguments: Vec<_> = getFlattenedBindingIterator()
             .map(|descriptorBinding| {
                 let (textureType, textureLayout) = match &descriptorBinding.content {
                     SPV::DescriptorBindingContent::Image(imgInfo) => {
-                        let textureType = 
-                            match imgInfo.image_format {
-                                SPV::SpvImageFormat::R32f => "eR32Sfloat",
-                                SPV::SpvImageFormat::Rgba8 => "eB8G8R8A8Unorm",
-                                SPV::SpvImageFormat::Unknown => "eUndefined",
-                                _ => panic!("Unsupported texture type")
-                            };
-                        let textureLayout =
-                            match &descriptorBinding.descriptor_type {
-                                SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "eShaderReadOnlyOptimal",
-                                SPV::DescriptorType::STORAGE_IMAGE => "eGeneral",
-                                _ => panic!("Unsupported texture layout")
-                            };
+                        let textureType = convertFormat(imgInfo.image_format);
+                        let textureLayout = convertDescriptorType(descriptorBinding.descriptor_type);
 
                         (textureType, textureLayout)
                     }
