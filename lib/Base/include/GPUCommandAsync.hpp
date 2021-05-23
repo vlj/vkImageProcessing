@@ -13,6 +13,7 @@ struct TemporaryThings {
   std::list<vk::UniqueFence> fences;
   std::list<vk::UniqueCommandBuffer> commandBuffers;
   std::list<vk::CommandPool> commandPoolsToReset;
+  std::list<vk::UniqueSemaphore> semaphores;
 };
 
 template <typename TextureStatesTuple, typename CallbackType> struct GPUAsyncCommand {
@@ -62,10 +63,11 @@ auto MakeGPUAsync(vk::Device dev, vk::DescriptorPool descriptorSetPool, vk::Comm
                    Base::StartedCommandBuffer &&startedCommandBuffer, TextureStatesTuple &&tuple) {
   auto endedCommandBuffer = Base::EndBufferRecording(std::move(startedCommandBuffer));
   auto toCall = [dev, descriptorSetPool, commandPool, queue, endedCommandBuffer = std::move(endedCommandBuffer)](TemporaryThings &&previous) mutable {
-    auto [fence, cmdbuf] = Base::SubmitBuffer(dev, queue, std::move(endedCommandBuffer));
+    auto [fence, cmdbuf, semaphore] = Base::SubmitBuffer(dev, queue, std::move(endedCommandBuffer));
 
     previous.fences.push_back(std::move(fence));
     previous.commandBuffers.push_back(std::move(cmdbuf));
+    previous.semaphores.push_back(std::move(semaphore));
     return std::move(previous);
   };
   return GPUAsyncCommand(dev, descriptorSetPool, commandPool, std::move(tuple), std::move(toCall));
@@ -138,11 +140,12 @@ auto MakeGPUAsync(vk::Device dev, vk::DescriptorPool descriptorSetPool, Base::Qu
   auto endedCommandBuffer = Base::EndBufferRecording(std::move(startedCommandBuffer));
   auto toCall = [dev, descriptorSetPool, queueData,
                  endedCommandBuffer = std::move(endedCommandBuffer)](Base::TemporaryThings &&previous) mutable {
-    auto [fence, cmdbuf] = Base::SubmitBuffer(dev, queueData.queue, std::move(endedCommandBuffer));
+    auto [fence, cmdbuf, semaphore] = Base::SubmitBuffer(dev, queueData.queue, std::move(endedCommandBuffer));
 
     previous.fences.push_back(std::move(fence));
     previous.commandBuffers.push_back(std::move(cmdbuf));
     previous.commandPoolsToReset.push_back(queueData.commandPool);
+    previous.semaphores.push_back(std::move(semaphore));
     return std::move(previous);
   };
   return GPUAsyncCommand(dev, descriptorSetPool, std::move(resultGPUAsync), std::move(toCall));

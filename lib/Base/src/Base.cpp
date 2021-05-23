@@ -16,13 +16,16 @@ EndedCommandBuffer EndBufferRecording(StartedCommandBuffer &&buffer) {
   return {std::move(buffer.buffer)};
 }
 
-std::tuple<vk::UniqueFence, vk::UniqueCommandBuffer> SubmitBuffer(vk::Device dev, vk::Queue queue, EndedCommandBuffer &&buffer) {
-  auto tosubmit = std::vector({*buffer.buffer});
-  auto submitInfo = vk::SubmitInfo().setCommandBuffers(tosubmit);
+std::tuple<vk::UniqueFence, vk::UniqueCommandBuffer, vk::UniqueSemaphore> SubmitBuffer(vk::Device dev, vk::Queue queue, EndedCommandBuffer &&buffer) {
   auto fenceinfo = vk::FenceCreateInfo();
   auto fence = dev.createFenceUnique(fenceinfo);
+  auto semaphoreInfo = vk::SemaphoreCreateInfo();
+  auto semaphore = dev.createSemaphoreUnique(semaphoreInfo);
+  auto tosubmit = std::vector({*buffer.buffer});
+  auto semaphores = std::vector{*semaphore};
+  auto submitInfo = vk::SubmitInfo().setCommandBuffers(tosubmit).setSignalSemaphores(semaphores);
   queue.submit(submitInfo, *fence);
-  return std::make_tuple(std::move(fence), std::move(buffer.buffer));
+  return std::make_tuple(std::move(fence), std::move(buffer.buffer), std::move(semaphore));
 }
 
 void WaitAndReset(vk::Device dev, vk::DescriptorPool descriptorSetPool, vk::CommandPool commandPool, vk::Fence &&fence) {

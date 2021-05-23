@@ -121,7 +121,7 @@ namespace GuidedFilter {
           Base::Transition<vk::ImageLayout::eGeneral>(*cmdBuf, std::move(result)),
       };
 
-      auto [fence, commandBuffer] = Base::SubmitBuffer(dev, queue, Base::EndBufferRecording(std::move(cmdBuf)));
+      auto [fence, commandBuffer, semaphores] = Base::SubmitBuffer(dev, queue, Base::EndBufferRecording(std::move(cmdBuf)));
       Base::WaitAndReset(dev, descriptorSetPool, commandPool, std::move(*fence));
       return returnValue;
     }

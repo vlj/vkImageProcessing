@@ -82,7 +82,8 @@ StartedCommandBuffer CreateOneShotStartedBuffer(vk::Device dev, vk::CommandPool 
 
 EndedCommandBuffer EndBufferRecording(StartedCommandBuffer &&buffer);
 
-std::tuple<vk::UniqueFence, vk::UniqueCommandBuffer> SubmitBuffer(vk::Device dev, vk::Queue queue, EndedCommandBuffer &&buffer);
+std::tuple<vk::UniqueFence, vk::UniqueCommandBuffer, vk::UniqueSemaphore> SubmitBuffer(vk::Device dev, vk::Queue queue,
+                                                                                       EndedCommandBuffer &&buffer);
 
 void WaitAndReset(vk::Device dev, vk::DescriptorPool descriptorSetPool, vk::CommandPool commandPool, vk::Fence &&fence);
 
