@@ -1,4 +1,4 @@
-add_library(WindowingSystem
+add_library(WindowingSystem STATIC
     include/WindowingSystem.hpp
     src/WindowingSystem.cpp
 )

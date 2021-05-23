@@ -31,7 +31,7 @@ compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/meanAandBPass1.glsl ${CMA
 compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/meanAandBPass2.glsl ${CMAKE_CURRENT_BINARY_DIR}/meanAandBPass2.h)
 compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/guidedFilterFinal.glsl ${CMAKE_CURRENT_BINARY_DIR}/guidedFilterFinal.h)
 
-add_library(ShaderCollection
+add_library(ShaderCollection SHARED
     include/ShadersCollection.h
     src/ShadersCollection.cpp
 
@@ -67,6 +67,6 @@ add_library(ShaderCollection
      )
 target_include_directories(ShaderCollection PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(ShaderCollection PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(ShaderCollection PRIVATE VkImageProcessing)
+target_link_libraries(ShaderCollection PRIVATE Base)
 target_compile_features(ShaderCollection PRIVATE cxx_std_17)
 

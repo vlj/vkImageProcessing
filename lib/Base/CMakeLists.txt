@@ -2,7 +2,7 @@ find_package(Microsoft.GSL CONFIG REQUIRED)
 
 find_package(Vulkan REQUIRED)
 
-add_library(Base
+add_library(Base STATIC
     include/Base.hpp
     include/Base_impl.hpp
     include/Context.hpp

@@ -1,4 +1,4 @@
-add_library(VkImageProcessing
+add_library(VkImageProcessing STATIC
     include/GuidedFilterHelpers.hpp
     include/IntegralImageHelpers.h
     include/highlevelhelpers.h
