@@ -195,17 +195,27 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     let declaration = {
         let arguments: Vec<_> = getFlattenedBindingIterator()
             .map(|descriptorBinding| {
-                let textureType = match &descriptorBinding.content {
-                    SPV::DescriptorBindingContent::Image(imgInfo) => 
-                        match imgInfo.image_format {
-                            SPV::SpvImageFormat::R32f => "eR32Sfloat",
-                            SPV::SpvImageFormat::Rgba8 => "eB8G8R8A8Unorm",
-                            _ => panic!("Unsupported texture type")
+                let (textureType, textureLayout) = match &descriptorBinding.content {
+                    SPV::DescriptorBindingContent::Image(imgInfo) => {
+                        let textureType = 
+                            match imgInfo.image_format {
+                                SPV::SpvImageFormat::R32f => "eR32Sfloat",
+                                SPV::SpvImageFormat::Rgba8 => "eB8G8R8A8Unorm",
+                                SPV::SpvImageFormat::Unknown => "eUndefined",
+                                _ => panic!("Unsupported texture type")
+                            };
+                        let textureLayout =
+                            match &descriptorBinding.descriptor_type {
+                                SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "eShaderReadOnlyOptimal",
+                                SPV::DescriptorType::STORAGE_IMAGE => "eGeneral",
+                                _ => panic!("Unsupported texture layout")
+                            };
 
-                        }
+                        (textureType, textureLayout)
+                    }
                     _ => panic!("Not an image descriptor !!")
                 };
-                format!("    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::{}> &{}", textureType, &descriptorBinding.name)
+                format!("    Base::DecoratedState<vk::ImageLayout::{}, vk::Format::{}> &{}", textureLayout, textureType, &descriptorBinding.name)
             })
             .collect();
         format!("
