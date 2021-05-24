@@ -4,6 +4,7 @@
 
 use super::SPV;
 
+
 pub fn generate_buffer_type_declaration(module: &SPV::CleanSpvReflectShaderModule) -> String
 {
     
@@ -62,6 +63,15 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
       shaderModule = dev.createShaderModuleUnique(moduleCreateInfo);
 ");
 
+    let setDescriptorTypeHelper = |descriptor_type| {
+        match descriptor_type {
+            SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "vk::DescriptorType::eCombinedImageSampler",
+            SPV::DescriptorType::STORAGE_IMAGE => "vk::DescriptorType::eStorageImage",
+            SPV::DescriptorType::UNIFORM_BUFFER => "vk::DescriptorType::eUniformBuffer",
+            _ => panic!("Unsupported texture descriptor")
+        }
+    };
+
     // Create descriptorSetLayout
     let descriptorSetLayoutCode = {
 
@@ -77,11 +87,11 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
           auto binding = vk::DescriptorSetLayoutBinding()
             .setBinding({})
             .setDescriptorCount(1)
-            .setDescriptorType(vk::DescriptorType::eStorageImage)
+            .setDescriptorType(vk::DescriptorType::{})
             .setStageFlags(vk::ShaderStageFlagBits::eCompute);
             bindings.push_back(binding);
         }}
-", binding.binding)
+", binding.binding, setDescriptorTypeHelper(binding.descriptor_type))
                         })
                         .collect();
                     format!("
