@@ -138,7 +138,7 @@ pub struct SpvReflectTypeDescription {
   //  pub decoration_flags: SpvReflectDecorationFlags,
   //  pub traits: SpvReflectTypeDescription_Traits,
     //pub member_count: u32,
-    //pub members: Vec<SpvReflectTypeDescription>,
+    pub members: Vec<SpvReflectTypeDescription>,
 }
 
 pub struct SpvReflectDescriptorBinding {
@@ -327,9 +327,11 @@ impl Convertable for raw::SpvReflectTypeDescription {
             SpvReflectTypeDescription{
                 id: self.id,
                 type_name: ConvertStr(self.type_name),
-                struct_member_name: ConvertStr(self.struct_member_name)
-                //members :
-
+                struct_member_name: ConvertStr(self.struct_member_name),
+                members : (0..self.member_count).map(|offset| {
+                        let member = unsafe { *self.members.offset(offset as isize) };
+                        member.Convert()
+                    }).collect()
             }
     }
 }
@@ -365,86 +367,84 @@ impl Convertable for raw::SpvReflectBlockVariable {
     }
 }
 
+impl Convertable for raw::SpvReflectDescriptorBinding {
+    type Converted = SpvReflectDescriptorBinding;
 
+    fn Convert(&self) -> SpvReflectDescriptorBinding {
+        let name = unsafe {
+            std::ffi::CStr::from_ptr(self.name)
+                .to_str()
+                .unwrap()
+                .to_string()
+        };
+        let tmp = self.descriptor_type;
+        let descriptor_type = match tmp {
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER => {
+                DescriptorType::SAMPLER
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER => {
+                DescriptorType::COMBINED_IMAGE_SAMPLER
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE => {
+                DescriptorType::SAMPLED_IMAGE
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE => {
+                DescriptorType::STORAGE_IMAGE
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER => {
+                DescriptorType::UNIFORM_TEXEL_BUFFER
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER => {
+                DescriptorType::STORAGE_TEXEL_BUFFER
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER => {
+                DescriptorType::UNIFORM_BUFFER
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER => {
+                DescriptorType::STORAGE_BUFFER
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC => {
+                DescriptorType::UNIFORM_BUFFER_DYNAMIC
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC => {
+                DescriptorType::STORAGE_BUFFER_DYNAMIC
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT => {
+                DescriptorType::INPUT_ATTACHMENT
+            }
+            raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR => {
+                DescriptorType::ACCELERATION_STRUCTURE_KHR
+            }
+            _ => panic!("unknow value"),
+        };
 
-// fn ConvertType(input: &raw::SpvReflectTypeDescription) -> SpvReflectTypeDescription {
-//     SpvReflectTypeDescription{}
-// }
-
-fn Convert(input: &raw::SpvReflectDescriptorBinding) -> SpvReflectDescriptorBinding {
-    let name = unsafe {
-        std::ffi::CStr::from_ptr(input.name)
-            .to_str()
-            .unwrap()
-            .to_string()
-    };
-    let tmp = input.descriptor_type;
-    let descriptor_type = match tmp {
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER => {
-            DescriptorType::SAMPLER
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER => {
-            DescriptorType::COMBINED_IMAGE_SAMPLER
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE => {
+        let content = match descriptor_type {
             DescriptorType::SAMPLED_IMAGE
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE => {
-            DescriptorType::STORAGE_IMAGE
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER => {
-            DescriptorType::UNIFORM_TEXEL_BUFFER
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER => {
-            DescriptorType::STORAGE_TEXEL_BUFFER
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER => {
-            DescriptorType::UNIFORM_BUFFER
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER => {
-            DescriptorType::STORAGE_BUFFER
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC => {
-            DescriptorType::UNIFORM_BUFFER_DYNAMIC
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC => {
-            DescriptorType::STORAGE_BUFFER_DYNAMIC
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT => {
-            DescriptorType::INPUT_ATTACHMENT
-        }
-        raw::SpvReflectDescriptorType_SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR => {
-            DescriptorType::ACCELERATION_STRUCTURE_KHR
-        }
-        _ => panic!("unknow value"),
-    };
+            | DescriptorType::COMBINED_IMAGE_SAMPLER
+            | DescriptorType::STORAGE_IMAGE => DescriptorBindingContent::Image(SpvReflectImageTraits {
+                input_attachment_index: self.input_attachment_index,
+                arrayed: self.image.arrayed,
+                ms: self.image.ms,
+                depth: self.image.depth,
+                dim: self.image.dim,
+                image_format: get_image_format(self.image.image_format),
+                sampled: self.image.sampled,
+            }),
+            | DescriptorType::UNIFORM_BUFFER => DescriptorBindingContent::Block((&self.block).Convert()),
+            _ => DescriptorBindingContent::None,
+        };
 
-    let content = match descriptor_type {
-        DescriptorType::SAMPLED_IMAGE
-        | DescriptorType::COMBINED_IMAGE_SAMPLER
-        | DescriptorType::STORAGE_IMAGE => DescriptorBindingContent::Image(SpvReflectImageTraits {
-            input_attachment_index: input.input_attachment_index,
-            arrayed: input.image.arrayed,
-            ms: input.image.ms,
-            depth: input.image.depth,
-            dim: input.image.dim,
-            image_format: get_image_format(input.image.image_format),
-            sampled: input.image.sampled,
-        }),
-        | DescriptorType::UNIFORM_BUFFER => DescriptorBindingContent::Block((&input.block).Convert()),
-        _ => DescriptorBindingContent::None,
-    };
-
-    SpvReflectDescriptorBinding {
-        spirv_id: input.spirv_id,
-        name: name,
-        binding: input.binding,
-        set: input.set,
-        descriptor_type: descriptor_type,
-        content: content,
-        count: input.count,
-        accessed: input.accessed,
-        type_description: unsafe {(*input.type_description).Convert() },
+        SpvReflectDescriptorBinding {
+            spirv_id: self.spirv_id,
+            name: name,
+            binding: self.binding,
+            set: self.set,
+            descriptor_type: descriptor_type,
+            content: content,
+            count: self.count,
+            accessed: self.accessed,
+            type_description: unsafe {(*self.type_description).Convert() },
+        }
     }
 }
 
@@ -468,7 +468,7 @@ fn HigherLevelSpvReflectShaderModule(
                     (0..rawDescriptorSet.binding_count)
                         .map(|offset| unsafe {
                             let elem = rawDescriptorSet.bindings.offset(offset as isize);
-                            Convert(&**elem)
+                            (&**elem).Convert()
                         })
                         .collect()
                 };
