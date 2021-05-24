@@ -4,6 +4,32 @@
 
 use super::SPV;
 
+impl ToString for SPV::DescriptorType {
+    fn to_string(&self) -> String {
+        let as_str = match self {
+            SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "vk::DescriptorType::eCombinedImageSampler",
+            SPV::DescriptorType::STORAGE_IMAGE => "vk::DescriptorType::eStorageImage",
+            SPV::DescriptorType::UNIFORM_BUFFER => "vk::DescriptorType::eUniformBuffer",
+            _ => panic!("Unsupported texture descriptor")
+        };
+        as_str.to_string()
+    }
+}
+
+impl ToString for SPV::SpvImageFormat {
+    fn to_string(&self) -> String {
+        let as_str = 
+            match self {
+                SPV::SpvImageFormat::R32f => "eR32Sfloat",
+                SPV::SpvImageFormat::Rgba8 => "eB8G8R8A8Unorm",
+                SPV::SpvImageFormat::Rgba16f => "eR16G16B16A16Sfloat",
+                SPV::SpvImageFormat::Unknown => "eUndefined",
+                _ => panic!("Unsupported texture type")
+            };
+        as_str.to_string()
+    }
+}
+
 
 pub fn generate_buffer_type_declaration(module: &SPV::CleanSpvReflectShaderModule) -> String
 {
@@ -63,15 +89,6 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
       shaderModule = dev.createShaderModuleUnique(moduleCreateInfo);
 ");
 
-    let setDescriptorTypeHelper = |descriptor_type| {
-        match descriptor_type {
-            SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "vk::DescriptorType::eCombinedImageSampler",
-            SPV::DescriptorType::STORAGE_IMAGE => "vk::DescriptorType::eStorageImage",
-            SPV::DescriptorType::UNIFORM_BUFFER => "vk::DescriptorType::eUniformBuffer",
-            _ => panic!("Unsupported texture descriptor")
-        }
-    };
-
     // Create descriptorSetLayout
     let descriptorSetLayoutCode = {
 
@@ -91,7 +108,7 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
             .setStageFlags(vk::ShaderStageFlagBits::eCompute);
             bindings.push_back(binding);
         }}
-", binding.binding, setDescriptorTypeHelper(binding.descriptor_type))
+", binding.binding, binding.descriptor_type.to_string())
                         })
                         .collect();
                     format!("
@@ -241,15 +258,7 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     headerContent.push_str(&createDescriptorSetCode);
 
     let declaration = {
-        let convertFormat = |fmt| {
-            match fmt {
-                SPV::SpvImageFormat::R32f => "eR32Sfloat",
-                SPV::SpvImageFormat::Rgba8 => "eB8G8R8A8Unorm",
-                SPV::SpvImageFormat::Rgba16f => "eR16G16B16A16Sfloat",
-                SPV::SpvImageFormat::Unknown => "eUndefined",
-                _ => panic!("Unsupported texture type")
-            }
-        };
+
 
         let convertDescriptorType = |descriptor_type| {
             match descriptor_type {
@@ -263,7 +272,7 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
             .map(|descriptorBinding| {
                 let typename = match &descriptorBinding.content {
                     SPV::DescriptorBindingContent::Image(imgInfo) => {
-                        let textureType = convertFormat(imgInfo.image_format);
+                        let textureType = imgInfo.image_format.to_string();
                         let textureLayout = convertDescriptorType(descriptorBinding.descriptor_type);
                         format!("Base::DecoratedState<vk::ImageLayout::{}, vk::Format::{}>", textureLayout, textureType)
                     },
