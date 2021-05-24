@@ -117,7 +117,7 @@ pub struct SpvReflectBlockVariable {
     // pub flags: SpvReflectVariableFlags,
     // pub member_count: u32,
     pub members: Vec<SpvReflectBlockVariable>,
-    // pub type_description: *mut SpvReflectTypeDescription,
+    pub type_description: SpvReflectTypeDescription,
 }
 
 pub enum DescriptorBindingContent {
@@ -125,6 +125,20 @@ pub enum DescriptorBindingContent {
     Block(SpvReflectBlockVariable),
     Array(raw::SpvReflectBindingArrayTraits),
     None,
+}
+
+#[derive(Clone)]
+pub struct SpvReflectTypeDescription {
+    pub id: u32,
+//    pub op: SpvOp,
+    pub type_name: String,
+    pub struct_member_name: String,
+  //  pub storage_class: SpvStorageClass,
+  //  pub type_flags: SpvReflectTypeFlags,
+  //  pub decoration_flags: SpvReflectDecorationFlags,
+  //  pub traits: SpvReflectTypeDescription_Traits,
+    //pub member_count: u32,
+    //pub members: Vec<SpvReflectTypeDescription>,
 }
 
 pub struct SpvReflectDescriptorBinding {
@@ -139,7 +153,7 @@ pub struct SpvReflectDescriptorBinding {
     pub accessed: u32,
     // pub uav_counter_id: u32,
     // pub uav_counter_binding: *mut raw::SpvReflectDescriptorBinding,
-    pub type_description: *mut raw::SpvReflectTypeDescription,
+    pub type_description: SpvReflectTypeDescription,
     //pub word_offset: SpvReflectDescriptorBinding__bindgen_ty_1,
 }
 
@@ -283,29 +297,74 @@ fn get_image_format(format: raw::SpvImageFormat) -> SpvImageFormat {
     }
 }
 
-fn buildBlock(block : &raw::SpvReflectBlockVariable) -> SpvReflectBlockVariable {
-    let members : Vec<_> =
-        (0..block.member_count).map(|offset| {
+
+fn ConvertStr(string: *const ::std::os::raw::c_char) -> String {
+    unsafe {
+        std::ffi::CStr::from_ptr(string)
+            .to_str()
+            .unwrap()
+            .to_string()
+    }
+}
+
+
+pub trait Convertable {
+    type Converted;
+
+    fn Convert(&self) -> Self::Converted;
+}
+
+impl Convertable for raw::SpvReflectTypeDescription {
+    type Converted = SpvReflectTypeDescription;
+
+    fn Convert(&self) -> SpvReflectTypeDescription
+    {
+        SpvReflectTypeDescription{
+            id: self.id,
+            type_name: String::new(),//ConvertStr(self.type_name),
+            struct_member_name: String::new(),//ConvertStr(self.struct_member_name)
+            //members :
+
+        }
+    }
+}
+
+impl Convertable for raw::SpvReflectBlockVariable {
+    type Converted = SpvReflectBlockVariable;
+
+    fn Convert(&self) -> SpvReflectBlockVariable 
+    {
+        let members : Vec<_> =
+        (0..self.member_count).map(|offset| {
             unsafe {
-                buildBlock(&*block.members.offset(offset as isize))
+                let child = &*self.members.offset(offset as isize);
+                child.Convert()
             }
         })
         .collect();
 
-    SpvReflectBlockVariable {
-        spirv_id: block.spirv_id,
-        name: unsafe {
-            std::ffi::CStr::from_ptr(block.name)
-            .to_str()
-            .unwrap()
-            .to_string()},
-        offset: block.offset,
-        absolute_offset: block.absolute_offset,
-        size: block.size,
-        padded_size: block.padded_size,
-        members: members
+        SpvReflectBlockVariable {
+            spirv_id: self.spirv_id,
+            name: unsafe {
+                std::ffi::CStr::from_ptr(self.name)
+                .to_str()
+                .unwrap()
+                .to_string()},
+            offset: self.offset,
+            absolute_offset: self.absolute_offset,
+            size: self.size,
+            padded_size: self.padded_size,
+            members: members,
+            type_description: unsafe {(*self.type_description).Convert() }
+        }
     }
 }
+
+
+
+// fn ConvertType(input: &raw::SpvReflectTypeDescription) -> SpvReflectTypeDescription {
+//     SpvReflectTypeDescription{}
+// }
 
 fn Convert(input: &raw::SpvReflectDescriptorBinding) -> SpvReflectDescriptorBinding {
     let name = unsafe {
@@ -367,7 +426,7 @@ fn Convert(input: &raw::SpvReflectDescriptorBinding) -> SpvReflectDescriptorBind
             image_format: get_image_format(input.image.image_format),
             sampled: input.image.sampled,
         }),
-        | DescriptorType::UNIFORM_BUFFER => DescriptorBindingContent::Block(buildBlock(&input.block)),
+        | DescriptorType::UNIFORM_BUFFER => DescriptorBindingContent::Block((&input.block).Convert()),
         _ => DescriptorBindingContent::None,
     };
 
@@ -380,7 +439,7 @@ fn Convert(input: &raw::SpvReflectDescriptorBinding) -> SpvReflectDescriptorBind
         content: content,
         count: input.count,
         accessed: input.accessed,
-        type_description: input.type_description,
+        type_description: unsafe {(*input.type_description).Convert() },
     }
 }
 

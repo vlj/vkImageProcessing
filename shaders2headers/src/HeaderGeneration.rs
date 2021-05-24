@@ -213,16 +213,18 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
 
         let arguments: Vec<_> = getFlattenedBindingIterator()
             .map(|descriptorBinding| {
-                let (textureType, textureLayout) = match &descriptorBinding.content {
+                let typename = match &descriptorBinding.content {
                     SPV::DescriptorBindingContent::Image(imgInfo) => {
                         let textureType = convertFormat(imgInfo.image_format);
                         let textureLayout = convertDescriptorType(descriptorBinding.descriptor_type);
-
-                        (textureType, textureLayout)
-                    }
+                        format!("Base::DecoratedState<vk::ImageLayout::{}, vk::Format::{}>", textureLayout, textureType)
+                    },
+                    SPV::DescriptorBindingContent::Block(blockInfo) => {
+                        format!("{}", descriptorBinding.type_description.type_name)
+                    },
                     _ => panic!("Not an image descriptor !!")
                 };
-                format!("    Base::DecoratedState<vk::ImageLayout::{}, vk::Format::{}> &{}", textureLayout, textureType, &descriptorBinding.name)
+                format!("    {} &{}", typename, &descriptorBinding.name)
             })
             .collect();
         format!("
