@@ -4,6 +4,44 @@
 
 use super::SPV;
 
+pub fn generate_buffer_type_declaration(module: &SPV::CleanSpvReflectShaderModule) -> String
+{
+    
+    let mut headerContent = String::new();
+
+    let getFlattenedBindingIterator = || {
+        module.descriptor_sets
+            .iter()
+            .map(|x| {
+                x.descriptor_bindings.iter()
+            })
+            .flatten()
+    };
+    
+    let uniformBufferIterator  =  getFlattenedBindingIterator()
+        .filter_map(|descriptor_bindings| {
+            match &descriptor_bindings.content {
+                SPV::DescriptorBindingContent::Block(blockInfo) => Some(blockInfo.type_description.clone()),
+                _ => None
+            }
+        });
+
+    let listOfStructures: Vec<_> = uniformBufferIterator.map(
+        |type_description| {
+            let members: Vec<_> = type_description.members
+                .iter()
+                .map(|member| {
+                    format!("    {} {};", "float", member.struct_member_name)
+                })
+                .collect();
+            format!("\n  struct {} {{\n{}\n  }};", type_description.type_name, members.join("\n"))
+        }
+    ).collect();
+
+    headerContent.push_str(&format!("{}\n\n", listOfStructures.join("\n")));
+    headerContent
+}
+
 
 pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflectShaderModule) -> String
 {
@@ -276,6 +314,8 @@ pub fn build_header(shader_name: &str, module: SPV::CleanSpvReflectShaderModule)
     headerContent.push_str(&format!("  std::array<vk::UniqueDescriptorSetLayout, {}> descriptorSetLayout;\n", module.descriptor_sets.len()));
     headerContent.push_str("  vk::UniquePipelineLayout pipelineLayout;\n");
     headerContent.push_str("  vk::UniquePipeline pipeline;\n");
+
+    headerContent.push_str(&generate_buffer_type_declaration(&module));
 
     headerContent.push_str(&generate_constructor_code(shader_name, &module));
 

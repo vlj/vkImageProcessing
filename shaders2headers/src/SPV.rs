@@ -115,7 +115,6 @@ pub struct SpvReflectBlockVariable {
     // pub numeric: SpvReflectNumericTraits,
     // pub array: SpvReflectArrayTraits,
     // pub flags: SpvReflectVariableFlags,
-    // pub member_count: u32,
     pub members: Vec<SpvReflectBlockVariable>,
     pub type_description: SpvReflectTypeDescription,
 }
@@ -127,6 +126,27 @@ pub enum DescriptorBindingContent {
     None,
 }
 
+bitflags! {
+    pub struct SpvReflectTypeFlags: i32
+    {
+        const Undefined = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_UNDEFINED;
+        const Void = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_VOID;
+        const Bool = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_BOOL;
+        const Int = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_INT;
+        const Float = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_FLOAT;
+        const Vector = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_VECTOR;
+        const Matrix = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_MATRIX;
+        const Image = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_EXTERNAL_IMAGE;
+        const Sampler = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_EXTERNAL_SAMPLER;
+        const SampledImage = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_EXTERNAL_SAMPLED_IMAGE;
+        const Block = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_EXTERNAL_BLOCK;
+        const ExternalAccelerationStructure = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_EXTERNAL_ACCELERATION_STRUCTURE;
+        const ExternalMask = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_EXTERNAL_MASK;
+        const Struct = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_STRUCT;
+        const Array = raw::SpvReflectTypeFlagBits_SPV_REFLECT_TYPE_FLAG_ARRAY;
+    }
+}
+
 #[derive(Clone)]
 pub struct SpvReflectTypeDescription {
     pub id: u32,
@@ -134,10 +154,9 @@ pub struct SpvReflectTypeDescription {
     pub type_name: String,
     pub struct_member_name: String,
   //  pub storage_class: SpvStorageClass,
-  //  pub type_flags: SpvReflectTypeFlags,
+    pub type_flags: SpvReflectTypeFlags,
   //  pub decoration_flags: SpvReflectDecorationFlags,
   //  pub traits: SpvReflectTypeDescription_Traits,
-    //pub member_count: u32,
     pub members: Vec<SpvReflectTypeDescription>,
 }
 
@@ -324,6 +343,7 @@ impl Convertable for raw::SpvReflectTypeDescription {
 
     fn Convert(&self) -> SpvReflectTypeDescription
     {
+        let tmp = format!("{:?}", SpvReflectTypeFlags{bits:self.type_flags as i32});
             SpvReflectTypeDescription{
                 id: self.id,
                 type_name: ConvertStr(self.type_name),
@@ -331,7 +351,8 @@ impl Convertable for raw::SpvReflectTypeDescription {
                 members : (0..self.member_count).map(|offset| {
                         let member = unsafe { *self.members.offset(offset as isize) };
                         member.Convert()
-                    }).collect()
+                    }).collect(),
+                type_flags: SpvReflectTypeFlags{bits:self.type_flags as i32}
             }
     }
 }
