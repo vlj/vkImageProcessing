@@ -300,10 +300,15 @@ fn get_image_format(format: raw::SpvImageFormat) -> SpvImageFormat {
 
 fn ConvertStr(string: *const ::std::os::raw::c_char) -> String {
     unsafe {
-        std::ffi::CStr::from_ptr(string)
-            .to_str()
-            .unwrap()
-            .to_string()
+        if string.is_null() {
+            String::new()
+        }
+        else {
+            std::ffi::CStr::from_ptr(string)
+                .to_str()
+                .unwrap()
+                .to_string()
+        }
     }
 }
 
@@ -319,13 +324,13 @@ impl Convertable for raw::SpvReflectTypeDescription {
 
     fn Convert(&self) -> SpvReflectTypeDescription
     {
-        SpvReflectTypeDescription{
-            id: self.id,
-            type_name: String::new(),//ConvertStr(self.type_name),
-            struct_member_name: String::new(),//ConvertStr(self.struct_member_name)
-            //members :
+            SpvReflectTypeDescription{
+                id: self.id,
+                type_name: ConvertStr(self.type_name),
+                struct_member_name: ConvertStr(self.struct_member_name)
+                //members :
 
-        }
+            }
     }
 }
 
