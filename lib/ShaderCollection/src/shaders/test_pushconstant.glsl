@@ -5,7 +5,7 @@ layout(binding= 0) uniform sampler2D someSampler;
 
 layout(binding=1, rgba16f) uniform image2D result;
 
-layout(binding=2) uniform UBO {
+layout(push_constant) uniform UBO {
     vec2 someInput[2];
 } ubo;
 

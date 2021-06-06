@@ -21,8 +21,9 @@ struct test_pushconstant_h_spv
       };
       shaderModule = dev.createShaderModuleUnique(moduleCreateInfo);
 
+      std::vector<vk::PushConstantRange> pushConstantRanges;     
       {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings;                    
+        std::vector<vk::DescriptorSetLayoutBinding> bindings;                        
 
         {
           auto binding = vk::DescriptorSetLayoutBinding()
@@ -43,14 +44,10 @@ struct test_pushconstant_h_spv
             bindings.push_back(binding);
         }
 
-
+        
         {
-          auto binding = vk::DescriptorSetLayoutBinding()
-            .setBinding(2)
-            .setDescriptorCount(1)
-            .setDescriptorType(vk::DescriptorType::eUniformBuffer)
-            .setStageFlags(vk::ShaderStageFlagBits::eCompute);
-            bindings.push_back(binding);
+          auto range = vk::PushConstantRange{}.setOffset(0).setSize(sizeof(UBO)).setStageFlags(vk::ShaderStageFlagBits::eCompute);
+          pushConstantRanges.push_back(range);
         }
 
         auto createInfo = vk::DescriptorSetLayoutCreateInfo().setBindings(bindings);
@@ -62,6 +59,7 @@ struct test_pushconstant_h_spv
         conv_layout.push_back(*tmp);
       }
       auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo()
+        .setPushConstantRanges(pushConstantRanges)
         .setSetLayouts(conv_layout);
 
       pipelineLayout = dev.createPipelineLayoutUnique(pipelineLayoutCreateInfo);
@@ -169,6 +167,7 @@ struct test_pushconstant_h_spv
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);
+    (*commandBuffer).pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UBO), &ubo);
     (*commandBuffer).bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
     (*commandBuffer).dispatch(xBlockCount, yBlockCount, 1);
   }
