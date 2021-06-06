@@ -162,12 +162,12 @@ struct test_pushconstant_h_spv
         return descriptorSets;
       }
 
-  [[nodiscard]]
-  auto operator()(
+  template <vk::Format coreSamplerFormat>
+  [[nodiscard]]  auto operator()(
     Base::WorkgroupGeometry workgroupGeometry,
     Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-    Base::DecoratedState<vk::ImageLayout::eShaderReadOnlyOptimal, vk::Format::eUndefined> &someSampler,
+                      Base::DecoratedState<vk::ImageLayout::eShaderReadOnlyOptimal, coreSamplerFormat> &someSampler,
     Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR16G16B16A16Sfloat> &result,
     UBO &ubo
   )

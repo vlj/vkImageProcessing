@@ -104,9 +104,28 @@ TEST_CASE("Misc test", "[API]") {
 
   SECTION("Can load UBO and samplers") {
     auto [textureIn, storage0] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, 1024, 1024, "someInput");
-    auto [textureOut, storage1] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, 1024, 1024, "someOutput");
+    auto [textureOut, storage1] = Base::CreateTexture<vk::Format::eR16G16B16A16Sfloat>(*renderer.dev, 1024, 1024, "someOutput");
 
     auto testShader = Shaders::test_pushconstant_h_spv(*renderer.dev);
+    auto [textureOutState] = Experimental::MakeGPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool,
+                                                            std::make_tuple(std::move(textureIn), std::move(textureOut)))
+                                 .then([&](auto &&state) {
+              return Experimental::MakeGPUAsync(*renderer.dev, *renderer.descriptorSetPool, {renderer.queue, *renderer.commandPool},
+                                                [&, state = std::move(state)](auto &commandBuffer) mutable {
+                                                  auto &&[readableTexture, textureOut] = std::move(state);
+                                         auto &&sampledTexture = Base::Transition<vk::ImageLayout::eShaderReadOnlyOptimal>(
+                                                      *commandBuffer, std::move(readableTexture));
+                                         auto &&textureOutTransitioned = Base::Transition<vk::ImageLayout::eGeneral>(
+                                                      *commandBuffer, std::move(textureOut));
+                                         Shaders::test_pushconstant_h_spv::UBO ubo;
+                                                  auto writeableTextureOut =
+                                                      Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(textureOut));
+                                         testShader(Base::WorkgroupGeometry{16, 16}, commandBuffer, *renderer.descriptorSetPool,
+                                                             std::move(sampledTexture), std::move(textureOutTransitioned), ubo);
+                                         return std::make_tuple(std::move(writeableTextureOut));
+                                                });
+                                 })
+                                 .Sync();
   }
 
   SECTION("Horizontal prefix sum") {
