@@ -80,7 +80,8 @@ struct test_pushconstant_h_spv
 
     std::vector<vk::DescriptorSet> CreateDescriptorSets(
         vk::DescriptorPool descriptorSetPool,
-      vk::ImageView someSampler,
+      vk::ImageView someSamplerImage,
+      vk::Sampler someSamplerSampler,
       vk::ImageView result
     )
     {
@@ -102,8 +103,9 @@ struct test_pushconstant_h_spv
 
         {
           auto descriptorImageInfo = vk::DescriptorImageInfo()
-            .setImageView(someSampler)
-            .setImageLayout(vk::ImageLayout::eGeneral);
+            .setImageView(someSamplerImage)
+            .setSampler(someSamplerSampler)
+            .setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
           descriptorImageInfos.push_back(descriptorImageInfo);
         }
 
@@ -155,14 +157,15 @@ struct test_pushconstant_h_spv
     Base::WorkgroupGeometry workgroupGeometry,
     Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-                      Base::DecoratedState<vk::ImageLayout::eShaderReadOnlyOptimal, coreSamplerFormat> &someSampler,
+                      Base::DecoratedState<vk::ImageLayout::eShaderReadOnlyOptimal, coreSamplerFormat> &someSamplerImage,
+                      vk::Sampler &someSamplerSampler,
     Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR16G16B16A16Sfloat> &result,
     UBO &ubo
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, someSampler.view,result.view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, someSamplerImage.view, someSamplerSampler, result.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);

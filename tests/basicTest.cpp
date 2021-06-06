@@ -106,6 +106,9 @@ TEST_CASE("Misc test", "[API]") {
     auto [textureIn, storage0] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, 1024, 1024, "someInput");
     auto [textureOut, storage1] = Base::CreateTexture<vk::Format::eR16G16B16A16Sfloat>(*renderer.dev, 1024, 1024, "someOutput");
 
+    auto createInfo = vk::SamplerCreateInfo{};
+    vk::UniqueSampler sampler = renderer.dev->createSamplerUnique(createInfo);
+
     auto testShader = Shaders::test_pushconstant_h_spv(*renderer.dev);
     auto [textureOutState] = Experimental::MakeGPUAsyncUnit(*renderer.dev, *renderer.descriptorSetPool,
                                                             std::make_tuple(std::move(textureIn), std::move(textureOut)))
@@ -121,7 +124,7 @@ TEST_CASE("Misc test", "[API]") {
                                                   auto writeableTextureOut =
                                                       Base::Transition<vk::ImageLayout::eGeneral>(*commandBuffer, std::move(textureOut));
                                          testShader(Base::WorkgroupGeometry{16, 16}, commandBuffer, *renderer.descriptorSetPool,
-                                                             std::move(sampledTexture), std::move(textureOutTransitioned), ubo);
+                                                             std::move(sampledTexture), *sampler, std::move(textureOutTransitioned), ubo);
                                          return std::make_tuple(std::move(writeableTextureOut));
                                                 });
                                  })
