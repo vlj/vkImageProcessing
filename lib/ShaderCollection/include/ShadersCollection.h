@@ -93,4 +93,5 @@ namespace Shaders {
 #include "generated/averagingISqI_h_spv.h"
 #include "generated/copy_h_spv.h"
 #include "generated/test_average_h_spv.h"
+#include "generated/test_pushconstant_h_spv.h"
 }

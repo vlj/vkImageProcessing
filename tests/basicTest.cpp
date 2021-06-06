@@ -102,6 +102,13 @@ TEST_CASE("Misc test", "[API]") {
     REQUIRE(IsSame(ref, exportedimg));
   }
 
+  SECTION("Can load UBO and samplers") {
+    auto [textureIn, storage0] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, 1024, 1024, "someInput");
+    auto [textureOut, storage1] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, 1024, 1024, "someOutput");
+
+    auto testShader = Shaders::
+  }
+
   SECTION("Horizontal prefix sum") {
     cv::Mat img(cv::Size(128, 64), CV_32FC1, cv::Scalar(1));
 
