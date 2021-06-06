@@ -106,7 +106,7 @@ TEST_CASE("Misc test", "[API]") {
     auto [textureIn, storage0] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, 1024, 1024, "someInput");
     auto [textureOut, storage1] = Base::CreateTexture<vk::Format::eB8G8R8A8Unorm>(*renderer.dev, 1024, 1024, "someOutput");
 
-    auto testShader = Shaders::
+    auto testShader = Shaders::test_pushconstant_h_spv(*renderer.dev);
   }
 
   SECTION("Horizontal prefix sum") {

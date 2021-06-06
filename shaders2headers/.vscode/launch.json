@@ -8,12 +8,16 @@
             "name": "(Windows) Lancer",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "target\\debug\\hello_world.exe",
-            "args": [],
+            "program": "target\\debug\\shader2headers.exe",
+            "args": ["--input",
+                 "C:\\Users\\vljno\\Source\\Repos\\vkImageProcessing\\out\\build\\x64-windows-debug\\lib\\ShaderCollection\\ssbo_filter.h.spv",
+                 "--output_folder",
+                  "C:\\Users\\vljno\\Source\\Repos\\vkImageProcessing\\lib\\ShaderCollection\\include\\generated"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "externalTerminal",
+            "preLaunchTask": "build"
         }
     ]
 }

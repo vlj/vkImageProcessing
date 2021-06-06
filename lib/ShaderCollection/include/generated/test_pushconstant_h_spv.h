@@ -28,7 +28,7 @@ struct test_pushconstant_h_spv
           auto binding = vk::DescriptorSetLayoutBinding()
             .setBinding(0)
             .setDescriptorCount(1)
-            .setDescriptorType(vk::DescriptorType::vk::DescriptorType::eCombinedImageSampler)
+            .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
             .setStageFlags(vk::ShaderStageFlagBits::eCompute);
             bindings.push_back(binding);
         }
@@ -38,7 +38,7 @@ struct test_pushconstant_h_spv
           auto binding = vk::DescriptorSetLayoutBinding()
             .setBinding(1)
             .setDescriptorCount(1)
-            .setDescriptorType(vk::DescriptorType::vk::DescriptorType::eStorageImage)
+            .setDescriptorType(vk::DescriptorType::eStorageImage)
             .setStageFlags(vk::ShaderStageFlagBits::eCompute);
             bindings.push_back(binding);
         }
@@ -48,7 +48,7 @@ struct test_pushconstant_h_spv
           auto binding = vk::DescriptorSetLayoutBinding()
             .setBinding(2)
             .setDescriptorCount(1)
-            .setDescriptorType(vk::DescriptorType::vk::DescriptorType::eUniformBuffer)
+            .setDescriptorType(vk::DescriptorType::eUniformBuffer)
             .setStageFlags(vk::ShaderStageFlagBits::eCompute);
             bindings.push_back(binding);
         }
@@ -81,8 +81,7 @@ struct test_pushconstant_h_spv
     std::vector<vk::DescriptorSet> CreateDescriptorSets(
         vk::DescriptorPool descriptorSetPool,
       vk::ImageView someSampler,
-      vk::ImageView result,
-      vk::ImageView ubo
+      vk::ImageView result
     )
     {
         std::vector<vk::DescriptorSetLayout> conv_layout;
@@ -116,13 +115,6 @@ struct test_pushconstant_h_spv
           descriptorImageInfos.push_back(descriptorImageInfo);
         }
 
-
-        {
-          auto descriptorImageInfo = vk::DescriptorImageInfo()
-            .setImageView(ubo)
-            .setImageLayout(vk::ImageLayout::eGeneral);
-          descriptorImageInfos.push_back(descriptorImageInfo);
-        }
 
 
         int idx = 0;
@@ -182,7 +174,7 @@ struct test_pushconstant_h_spv
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, someSampler.view,result.view,ubo.view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, someSampler.view,result.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);

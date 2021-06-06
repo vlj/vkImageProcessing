@@ -31,7 +31,7 @@ compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/meanAandBPass1.glsl ${CMA
 compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/meanAandBPass2.glsl ${CMAKE_CURRENT_BINARY_DIR}/meanAandBPass2.h)
 compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/guidedFilterFinal.glsl ${CMAKE_CURRENT_BINARY_DIR}/guidedFilterFinal.h)
 
-add_library(ShaderCollection SHARED
+add_library(ShaderCollection STATIC
     include/ShadersCollection.h
     src/ShadersCollection.cpp
 
@@ -64,6 +64,7 @@ add_library(ShaderCollection SHARED
     "include/generated/guidedFilterPass2_h_spv.cpp"
     "include/generated/meanAandBPass1_h_spv.cpp"
     "include/generated/meanAandBPass2_h_spv.cpp"
+    "include/generated/test_pushconstant_h_spv.cpp"
      )
 target_include_directories(ShaderCollection PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(ShaderCollection PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
