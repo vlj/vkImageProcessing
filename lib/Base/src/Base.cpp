@@ -106,7 +106,7 @@ Texture::Texture(vk::Device dev, size_t _width, size_t _height, vk::Format _form
                   .setMipLevels(1)
                   .setArrayLayers(1)
                   .setExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
-                  .setUsage(vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc)
+                  .setUsage(vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled)
                   .setInitialLayout(vk::ImageLayout::eUndefined)
                   .setTiling(vk::ImageTiling::eOptimal);
   image = dev.createImageUnique(info);

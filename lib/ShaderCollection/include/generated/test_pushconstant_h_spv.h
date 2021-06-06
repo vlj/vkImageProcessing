@@ -125,19 +125,7 @@ struct test_pushconstant_h_spv
         {
             auto writeDescriptor = vk::WriteDescriptorSet()
                 .setDescriptorCount(1)
-                .setDescriptorType(vk::DescriptorType::eStorageImage)
-                .setDstBinding(idx)
-                .setDstSet(descriptorSets[0])
-                .setImageInfo(descriptorImageInfos[idx]);
-            writes.push_back(writeDescriptor);
-            idx++;
-        }
-            
-
-        {
-            auto writeDescriptor = vk::WriteDescriptorSet()
-                .setDescriptorCount(1)
-                .setDescriptorType(vk::DescriptorType::eStorageImage)
+                .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
                 .setDstBinding(idx)
                 .setDstSet(descriptorSets[0])
                 .setImageInfo(descriptorImageInfos[idx]);
