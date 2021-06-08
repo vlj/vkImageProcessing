@@ -8,7 +8,7 @@ struct test_pushconstant_h_spv
   vk::UniquePipeline pipeline;
 
   struct UBO {
-    float someInput;
+    glm::vec2 someInput;
   };
 
   test_pushconstant_h_spv (vk::Device d) : dev(d)

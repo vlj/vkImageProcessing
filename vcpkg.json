@@ -5,6 +5,7 @@
     "ms-gsl",
     "catch",
     "glfw3",
-    "opencv4"
+    "opencv4",
+    "glm"
   ]
 }

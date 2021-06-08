@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <Base.hpp>
+#include <glm/glm.hpp>
 
 namespace Shaders {
 
