@@ -122,7 +122,7 @@ pub struct SpvReflectBlockVariable {
 pub enum DescriptorBindingContent {
     Image(SpvReflectImageTraits),
     Block(SpvReflectBlockVariable),
-    Array(raw::SpvReflectBindingArrayTraits),
+    //Array(raw::SpvReflectBindingArrayTraits),
     None,
 }
 
@@ -343,7 +343,6 @@ impl Convertable for raw::SpvReflectTypeDescription {
 
     fn Convert(&self) -> SpvReflectTypeDescription
     {
-        let tmp = format!("{:?}", SpvReflectTypeFlags{bits:self.type_flags as i32});
             SpvReflectTypeDescription{
                 id: self.id,
                 type_name: ConvertStr(self.type_name),

@@ -136,11 +136,6 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
         std::vector<vk::DescriptorSetLayoutBinding> bindings;                    
 {}
 
-//{{
-//    auto range = vk::PushConstantRange{{}}.setOffset(0).setSize(sizeof(UBO)).setStageFlags(vk::ShaderStageFlagBits::eCompute);
-//    pushConstantRanges.push_back(range);
-//}}
-
         auto createInfo = vk::DescriptorSetLayoutCreateInfo().setBindings(bindings);
         descriptorSetLayout[{}] = std::move(dev.createDescriptorSetLayoutUnique(createInfo));
       }}
@@ -153,16 +148,27 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
 
     headerContent.push_str(&descriptorSetLayoutCode);
 
+    // range
+    let pushconstantType = "UBO";
+
+    headerContent.push_str(&format!("
+    {{
+        auto range = vk::PushConstantRange{{}}.setOffset(0).setSize(sizeof({})).setStageFlags(vk::ShaderStageFlagBits::eCompute);
+        pushConstantRanges.push_back(range);
+    }}", pushconstantType));
+
     // Create PipelineLayout
 
     // Create pipeline
 
     let pipelineCode = format!("
+    
       std::vector<vk::DescriptorSetLayout> conv_layout;
       for (auto &&tmp : descriptorSetLayout) {{
         conv_layout.push_back(*tmp);
       }}
       auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo()
+        .setPushConstantRanges(pushConstantRanges)
         .setSetLayouts(conv_layout);
 
       pipelineLayout = dev.createPipelineLayoutUnique(pipelineLayoutCreateInfo);
@@ -211,7 +217,7 @@ fn argments_for_image(descriptorBinding: &SPV::SpvReflectDescriptorBinding) -> S
                 _ => panic!("Unsupported texture layout")
             }
         },
-        SPV::DescriptorBindingContent::Block(blockInfo) => {
+        SPV::DescriptorBindingContent::Block(_) => {
             format!("    {} &{}", descriptorBinding.type_description.type_name, &descriptorBinding.name)
         },
         _ => panic!("Not an image descriptor !!")
@@ -234,7 +240,25 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     let createDescriptorSetCode = {
         let mut descriptorDefinition = String::new();
         let arguments: Vec<_> = getFlattenedBindingIterator()
-            .map(|x|{ format!("      vk::ImageView {}", &x.name)})
+            .map(|descriptorSetBinding| {
+                match descriptorSetBinding.content {
+                    SPV::DescriptorBindingContent::Image(_) => {
+                        match descriptorSetBinding.descriptor_type {
+                            SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => {
+                                format!("        vk::ImageView {}Image,
+        vk::Sampler {}Sampler", &descriptorSetBinding.name, &descriptorSetBinding.name)
+                            },
+                            SPV::DescriptorType::STORAGE_IMAGE => {
+                                format!("        vk::ImageView {}", &descriptorSetBinding.name)
+                            },
+                            _ => panic!("Unsupported texture layout")
+                        }
+                        
+                    }
+                    _ => panic!("Not an image descriptor !")
+                }
+                
+            })
             .collect();
 
         descriptorDefinition.push_str(&format!("
@@ -262,7 +286,22 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
 "));
         let setResourceCode: Vec<_> =
             getFlattenedBindingIterator()
-                .map(|x| {
+                .map(|descriptorSetBinding| {
+                    match descriptorSetBinding.content {
+                        SPV::DescriptorBindingContent::Image(_) => {
+                            match descriptorSetBinding.descriptor_type {
+                                SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => {
+                    format!("
+        {{
+          auto descriptorImageInfo = vk::DescriptorImageInfo()
+            .setImageView({}Image)
+            .setSampler({}Sampler)
+            .setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+          descriptorImageInfos.push_back(descriptorImageInfo);
+        }}
+", descriptorSetBinding.name, descriptorSetBinding.name)
+                                },
+                                SPV::DescriptorType::STORAGE_IMAGE => {
                     format!("
         {{
           auto descriptorImageInfo = vk::DescriptorImageInfo()
@@ -270,7 +309,16 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
             .setImageLayout(vk::ImageLayout::eGeneral);
           descriptorImageInfos.push_back(descriptorImageInfo);
         }}
-", x.name)
+", descriptorSetBinding.name)
+                                },
+                                _ => panic!("Unsupported texture layout")
+                            }
+                            
+                        }
+                        _ => panic!("Not an image descriptor !")
+                    }
+
+
                 })
                 .collect();
         
@@ -316,9 +364,15 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
 
     let declaration = {
 
+        let pushconstantsdecl = module.push_constant_blocks
+            .iter()
+            .map(|blockVar|{
+                format!("    {} pushCst", blockVar.type_description.type_name)
+            });
 
         let arguments: Vec<_> = getFlattenedBindingIterator()
             .map(argments_for_image)
+            .chain(pushconstantsdecl)
             .collect();
         format!("
   template <vk::Format coreSamplerFormat>
@@ -337,7 +391,21 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     let body = {
         let arguments : Vec<_> = getFlattenedBindingIterator()
         .map(|descriptorBinding| {
-            format!("{}.view", &descriptorBinding.name)
+            match &descriptorBinding.content {
+                SPV::DescriptorBindingContent::Image(_) => {
+                    match descriptorBinding.descriptor_type {
+                        SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => {
+                            format!("{}Image.view, {}Sampler", &descriptorBinding.name, &descriptorBinding.name)
+                        },
+                        SPV::DescriptorType::STORAGE_IMAGE => {
+                            format!("{}.view", &descriptorBinding.name)
+                        },
+                        _ => panic!("Unsupported texture layout")
+                    }
+                },
+                _ => panic!("Not an image descriptor !!")
+            }
+
         })
         .collect();
 
@@ -348,6 +416,7 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);
+    (*commandBuffer).pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UBO), &pushCst);
     (*commandBuffer).bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
     (*commandBuffer).dispatch(xBlockCount, yBlockCount, 1);
   }}

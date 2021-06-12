@@ -21,9 +21,10 @@ struct test_pushconstant_h_spv
       };
       shaderModule = dev.createShaderModuleUnique(moduleCreateInfo);
 
-      std::vector<vk::PushConstantRange> pushConstantRanges;     
+      std::vector<vk::PushConstantRange> pushConstantRanges;  
+
       {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings;                        
+        std::vector<vk::DescriptorSetLayoutBinding> bindings;                    
 
         {
           auto binding = vk::DescriptorSetLayoutBinding()
@@ -44,16 +45,16 @@ struct test_pushconstant_h_spv
             bindings.push_back(binding);
         }
 
-        
-        {
-          auto range = vk::PushConstantRange{}.setOffset(0).setSize(sizeof(UBO)).setStageFlags(vk::ShaderStageFlagBits::eCompute);
-          pushConstantRanges.push_back(range);
-        }
 
         auto createInfo = vk::DescriptorSetLayoutCreateInfo().setBindings(bindings);
         descriptorSetLayout[0] = std::move(dev.createDescriptorSetLayoutUnique(createInfo));
       }
 
+    {
+        auto range = vk::PushConstantRange{}.setOffset(0).setSize(sizeof(UBO)).setStageFlags(vk::ShaderStageFlagBits::eCompute);
+        pushConstantRanges.push_back(range);
+    }
+    
       std::vector<vk::DescriptorSetLayout> conv_layout;
       for (auto &&tmp : descriptorSetLayout) {
         conv_layout.push_back(*tmp);
@@ -78,9 +79,9 @@ struct test_pushconstant_h_spv
 
     std::vector<vk::DescriptorSet> CreateDescriptorSets(
         vk::DescriptorPool descriptorSetPool,
-      vk::ImageView someSamplerImage,
-      vk::Sampler someSamplerSampler,
-      vk::ImageView result
+        vk::ImageView someSamplerImage,
+        vk::Sampler someSamplerSampler,
+        vk::ImageView result
     )
     {
         std::vector<vk::DescriptorSetLayout> conv_layout;
@@ -114,7 +115,6 @@ struct test_pushconstant_h_spv
             .setImageLayout(vk::ImageLayout::eGeneral);
           descriptorImageInfos.push_back(descriptorImageInfo);
         }
-
 
 
         int idx = 0;
@@ -151,23 +151,24 @@ struct test_pushconstant_h_spv
       }
 
   template <vk::Format coreSamplerFormat>
-  [[nodiscard]]  auto operator()(
+  [[nodiscard]]
+  auto operator()(
     Base::WorkgroupGeometry workgroupGeometry,
     Base::StartedCommandBuffer& commandBuffer,
     vk::DescriptorPool descriptorSetPool,
-                      Base::DecoratedState<vk::ImageLayout::eShaderReadOnlyOptimal, coreSamplerFormat> &someSamplerImage,
-                      vk::Sampler &someSamplerSampler,
+    Base::DecoratedState<vk::ImageLayout::eShaderReadOnlyOptimal, coreSamplerFormat> &someSamplerImage,
+    vk::Sampler someSamplerSampler,
     Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR16G16B16A16Sfloat> &result,
-    UBO &ubo
+    UBO pushCst
   )
 {
     auto [xBlockCount, yBlockCount] = workgroupGeometry;
 
-    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, someSamplerImage.view, someSamplerSampler, result.view);
+    auto descriptorSets = CreateDescriptorSets(descriptorSetPool, someSamplerImage.view, someSamplerSampler,result.view);
 
     std::vector<uint32_t> dynamicOffsets;
     (*commandBuffer).bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets, dynamicOffsets);
-    (*commandBuffer).pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UBO), &ubo);
+    (*commandBuffer).pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UBO), &pushCst);
     (*commandBuffer).bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
     (*commandBuffer).dispatch(xBlockCount, yBlockCount, 1);
   }
