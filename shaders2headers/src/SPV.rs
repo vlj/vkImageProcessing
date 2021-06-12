@@ -112,7 +112,7 @@ pub struct SpvReflectBlockVariable {
     pub size: u32,
     pub padded_size: u32,
     // pub decoration_flags: SpvReflectDecorationFlags,
-    // pub numeric: SpvReflectNumericTraits,
+    pub numeric: raw::SpvReflectNumericTraits,
     // pub array: SpvReflectArrayTraits,
     // pub flags: SpvReflectVariableFlags,
     pub members: Vec<SpvReflectBlockVariable>,
@@ -156,7 +156,7 @@ pub struct SpvReflectTypeDescription {
   //  pub storage_class: SpvStorageClass,
     pub type_flags: SpvReflectTypeFlags,
   //  pub decoration_flags: SpvReflectDecorationFlags,
-  //  pub traits: SpvReflectTypeDescription_Traits,
+    pub traits: raw::SpvReflectTypeDescription_Traits,
     pub members: Vec<SpvReflectTypeDescription>,
 }
 
@@ -216,7 +216,7 @@ pub struct CleanSpvReflectShaderModule {
     pub input_variables: Vec<*mut raw::SpvReflectInterfaceVariable>,
     pub output_variables: Vec<*mut raw::SpvReflectInterfaceVariable>,
     pub interface_variables: Vec<raw::SpvReflectInterfaceVariable>,
-    pub push_constant_blocks: Vec<raw::SpvReflectBlockVariable>,
+    pub push_constant_blocks: Vec<SpvReflectBlockVariable>,
     // pub _internal: *mut SpvReflectShaderModule_Internal,
 }
 
@@ -352,7 +352,8 @@ impl Convertable for raw::SpvReflectTypeDescription {
                         let member = unsafe { *self.members.offset(offset as isize) };
                         member.Convert()
                     }).collect(),
-                type_flags: SpvReflectTypeFlags{bits:self.type_flags as i32}
+                type_flags: SpvReflectTypeFlags{bits:self.type_flags as i32},
+                traits: self.traits
             }
     }
 }
@@ -383,7 +384,8 @@ impl Convertable for raw::SpvReflectBlockVariable {
             size: self.size,
             padded_size: self.padded_size,
             members: members,
-            type_description: unsafe {(*self.type_description).Convert() }
+            type_description: unsafe {(*self.type_description).Convert() },
+            numeric: self.numeric
         }
     }
 }
@@ -501,6 +503,13 @@ fn HigherLevelSpvReflectShaderModule(
             .collect()
     };
 
+    let pushconstants = toVec(
+        module.push_constant_blocks,
+        module.push_constant_block_count as isize)
+            .iter()
+            .map(|block| {block.Convert()})
+            .collect();
+
     let result = CleanSpvReflectShaderModule {
         entry_point_name: entry_point_name,
         entry_point_id: module.entry_point_id,
@@ -511,10 +520,7 @@ fn HigherLevelSpvReflectShaderModule(
         },
         source_language: get_source_language(module.source_language),
         entry_points: toVec(module.entry_points, module.entry_point_count as isize),
-        push_constant_blocks: toVec(
-            module.push_constant_blocks,
-            module.push_constant_block_count as isize,
-        ),
+        push_constant_blocks: pushconstants,
         interface_variables: toVec(
             module.interface_variables,
             module.interface_variable_count as isize,

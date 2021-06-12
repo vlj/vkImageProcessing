@@ -31,7 +31,29 @@ impl ToString for SPV::SpvImageFormat {
 }
 
 
-pub fn generate_buffer_type_declaration(module: &SPV::CleanSpvReflectShaderModule) -> String
+fn convertDescriptorType(descriptorType: SPV::DescriptorType) -> String {
+    match descriptorType {
+        SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "eShaderReadOnlyOptimal",
+        SPV::DescriptorType::STORAGE_IMAGE => "eGeneral",
+        _ => panic!("Unsupported texture layout")
+    }.to_string()
+}
+
+fn getType(member: &SPV::SpvReflectTypeDescription) -> String
+{
+    if member.type_flags.contains(SPV::SpvReflectTypeFlags::Float) {
+        if member.type_flags.contains(SPV::SpvReflectTypeFlags::Vector) {
+            let tmp = member.traits.numeric.vector;
+            return match member {
+                _ => format!("glm::vec{}", tmp.component_count)
+            }
+        }
+    };
+    format!("{:?}", member.type_flags)
+}
+
+
+fn generate_buffer_type_declaration(module: &SPV::CleanSpvReflectShaderModule) -> String
 {
     
     let mut headerContent = String::new();
@@ -45,23 +67,28 @@ pub fn generate_buffer_type_declaration(module: &SPV::CleanSpvReflectShaderModul
             .flatten()
     };
     
-    let uniformBufferIterator  =  getFlattenedBindingIterator()
+    let uniformBufferTypeDescription =  getFlattenedBindingIterator()
         .filter_map(|descriptor_bindings| {
             match &descriptor_bindings.content {
-                SPV::DescriptorBindingContent::Block(blockInfo) => Some(blockInfo.type_description.clone()),
+                SPV::DescriptorBindingContent::Block(blockInfo) => Some(blockInfo.clone()),
                 _ => None
             }
-        });
+        })
+        .chain(module.push_constant_blocks.iter()
+            .map(|blockVar|{blockVar.clone()})
+        );
 
-    let listOfStructures: Vec<_> = uniformBufferIterator.map(
-        |type_description| {
-            let members: Vec<_> = type_description.members
+
+    let listOfStructures: Vec<_> = uniformBufferTypeDescription
+        .map(
+        |blockVar| {
+            let members: Vec<_> = blockVar.type_description.members
                 .iter()
                 .map(|member| {
-                    format!("    {} {};", "float", member.struct_member_name)
+                    format!("    {} {};", getType(&member), member.struct_member_name, )
                 })
                 .collect();
-            format!("\n  struct {} {{\n{}\n  }};", type_description.type_name, members.join("\n"))
+            format!("\n  struct {} {{\n{}\n  }};", blockVar.type_description.type_name, members.join("\n"))
         }
     ).collect();
 
@@ -87,6 +114,8 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
         bytecode.data()
       };
       shaderModule = dev.createShaderModuleUnique(moduleCreateInfo);
+
+      std::vector<vk::PushConstantRange> pushConstantRanges;  
 ");
 
     // Create descriptorSetLayout
@@ -104,7 +133,7 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
           auto binding = vk::DescriptorSetLayoutBinding()
             .setBinding({})
             .setDescriptorCount(1)
-            .setDescriptorType(vk::DescriptorType::{})
+            .setDescriptorType({})
             .setStageFlags(vk::ShaderStageFlagBits::eCompute);
             bindings.push_back(binding);
         }}
@@ -115,6 +144,12 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
       {{
         std::vector<vk::DescriptorSetLayoutBinding> bindings;                    
 {}
+
+//{{
+//    auto range = vk::PushConstantRange{{}}.setOffset(0).setSize(sizeof(UBO)).setStageFlags(vk::ShaderStageFlagBits::eCompute);
+//    pushConstantRanges.push_back(range);
+//}}
+
         auto createInfo = vk::DescriptorSetLayoutCreateInfo().setBindings(bindings);
         descriptorSetLayout[{}] = std::move(dev.createDescriptorSetLayoutUnique(createInfo));
       }}
@@ -159,6 +194,25 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
 
     headerContent.push_str("  }\n");
     headerContent
+}
+
+fn argments_for_image(descriptorBinding: &SPV::SpvReflectDescriptorBinding) -> String
+{
+    let typename = match &descriptorBinding.content {
+        SPV::DescriptorBindingContent::Image(imgInfo) => {
+            let textureType = match imgInfo.image_format {
+                SPV::SpvImageFormat::Unknown => "coreSamplerFormat".to_string(),
+                x => format!("vk::Format::{}", x.to_string())
+            };
+            let textureLayout = convertDescriptorType(descriptorBinding.descriptor_type);
+            format!("Base::DecoratedState<vk::ImageLayout::{}, {}>", textureLayout, textureType)
+        },
+        SPV::DescriptorBindingContent::Block(blockInfo) => {
+            format!("{}", descriptorBinding.type_description.type_name)
+        },
+        _ => panic!("Not an image descriptor !!")
+    };
+    format!("    {} &{}", typename, &descriptorBinding.name)
 }
 
 pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
@@ -227,19 +281,19 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
 
         let writeDescriptor: Vec<_> = {
             getFlattenedBindingIterator()
-                .map(|_| {
+                .map(|binding| {
                     format!("
         {{
             auto writeDescriptor = vk::WriteDescriptorSet()
                 .setDescriptorCount(1)
-                .setDescriptorType(vk::DescriptorType::eStorageImage)
+                .setDescriptorType({})
                 .setDstBinding(idx)
                 .setDstSet(descriptorSets[0])
                 .setImageInfo(descriptorImageInfos[idx]);
             writes.push_back(writeDescriptor);
             idx++;
         }}
-            ")
+            ", binding.descriptor_type.to_string())
                 })
                 .collect()
         };
@@ -260,31 +314,11 @@ pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
     let declaration = {
 
 
-        let convertDescriptorType = |descriptor_type| {
-            match descriptor_type {
-                SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "eShaderReadOnlyOptimal",
-                SPV::DescriptorType::STORAGE_IMAGE => "eGeneral",
-                _ => panic!("Unsupported texture layout")
-            }
-        };
-
         let arguments: Vec<_> = getFlattenedBindingIterator()
-            .map(|descriptorBinding| {
-                let typename = match &descriptorBinding.content {
-                    SPV::DescriptorBindingContent::Image(imgInfo) => {
-                        let textureType = imgInfo.image_format.to_string();
-                        let textureLayout = convertDescriptorType(descriptorBinding.descriptor_type);
-                        format!("Base::DecoratedState<vk::ImageLayout::{}, vk::Format::{}>", textureLayout, textureType)
-                    },
-                    SPV::DescriptorBindingContent::Block(blockInfo) => {
-                        format!("{}", descriptorBinding.type_description.type_name)
-                    },
-                    _ => panic!("Not an image descriptor !!")
-                };
-                format!("    {} &{}", typename, &descriptorBinding.name)
-            })
+            .map(argments_for_image)
             .collect();
         format!("
+  template <vk::Format coreSamplerFormat>
   [[nodiscard]]
   auto operator()(
     Base::WorkgroupGeometry workgroupGeometry,
