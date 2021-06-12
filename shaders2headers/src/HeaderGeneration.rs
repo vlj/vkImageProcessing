@@ -30,15 +30,6 @@ impl ToString for SPV::SpvImageFormat {
     }
 }
 
-
-fn convertDescriptorType(descriptorType: SPV::DescriptorType) -> String {
-    match descriptorType {
-        SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => "eShaderReadOnlyOptimal",
-        SPV::DescriptorType::STORAGE_IMAGE => "eGeneral",
-        _ => panic!("Unsupported texture layout")
-    }.to_string()
-}
-
 fn getType(member: &SPV::SpvReflectTypeDescription) -> String
 {
     if member.type_flags.contains(SPV::SpvReflectTypeFlags::Float) {
@@ -198,21 +189,33 @@ pub fn generate_constructor_code(shader_name: &str, module: &SPV::CleanSpvReflec
 
 fn argments_for_image(descriptorBinding: &SPV::SpvReflectDescriptorBinding) -> String
 {
-    let typename = match &descriptorBinding.content {
+    match &descriptorBinding.content {
         SPV::DescriptorBindingContent::Image(imgInfo) => {
             let textureType = match imgInfo.image_format {
                 SPV::SpvImageFormat::Unknown => "coreSamplerFormat".to_string(),
                 x => format!("vk::Format::{}", x.to_string())
             };
-            let textureLayout = convertDescriptorType(descriptorBinding.descriptor_type);
-            format!("Base::DecoratedState<vk::ImageLayout::{}, {}>", textureLayout, textureType)
+            match descriptorBinding.descriptor_type {
+                SPV::DescriptorType::COMBINED_IMAGE_SAMPLER => {
+                    format!("    Base::DecoratedState<vk::ImageLayout::eShaderReadOnlyOptimal, {}> &{}Image,
+    vk::Sampler {}Sampler",
+                        textureType,
+                        &descriptorBinding.name,
+                        &descriptorBinding.name)
+                },
+                SPV::DescriptorType::STORAGE_IMAGE => {
+                    format!("    Base::DecoratedState<vk::ImageLayout::eGeneral, {}> &{}",
+                        textureType,
+                        &descriptorBinding.name)
+                },
+                _ => panic!("Unsupported texture layout")
+            }
         },
         SPV::DescriptorBindingContent::Block(blockInfo) => {
-            format!("{}", descriptorBinding.type_description.type_name)
+            format!("    {} &{}", descriptorBinding.type_description.type_name, &descriptorBinding.name)
         },
         _ => panic!("Not an image descriptor !!")
-    };
-    format!("    {} &{}", typename, &descriptorBinding.name)
+    }
 }
 
 pub fn build_operator(module: &SPV::CleanSpvReflectShaderModule) -> String
