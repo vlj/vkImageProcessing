@@ -8,7 +8,7 @@ struct test_pushconstant_h_spv
   vk::UniquePipeline pipeline;
 
   struct UBO {
-    glm::vec2 someInput;
+    glm::vec2 someInput[2];
   };
 
   test_pushconstant_h_spv (vk::Device d) : dev(d)
@@ -158,7 +158,7 @@ struct test_pushconstant_h_spv
     vk::DescriptorPool descriptorSetPool,
     Base::DecoratedState<vk::ImageLayout::eShaderReadOnlyOptimal, coreSamplerFormat> &someSamplerImage,
     vk::Sampler someSamplerSampler,
-    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eR16G16B16A16Sfloat> &result,
+    Base::DecoratedState<vk::ImageLayout::eGeneral, vk::Format::eB8G8R8A8Unorm> &result,
     UBO pushCst
   )
 {

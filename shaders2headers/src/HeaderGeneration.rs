@@ -43,6 +43,24 @@ fn getType(member: &SPV::SpvReflectTypeDescription) -> String
     format!("{:?}", member.type_flags)
 }
 
+fn getArrayModifier(member: &SPV::SpvReflectTypeDescription) -> String
+{
+    if member.type_flags.contains(SPV::SpvReflectTypeFlags::Array) {
+        (0..member.traits.array.dims_count)
+        .map(|i|
+            {
+                member.traits.array.dims[i as usize]
+            }
+        )
+        .map(|cnt|
+            {
+                format!("[{}]", cnt)
+            })
+        .collect::<Vec<_> >()
+        .join("")
+    } else { "".to_string() }
+}
+
 
 fn generate_buffer_type_declaration(module: &SPV::CleanSpvReflectShaderModule) -> String
 {
@@ -76,7 +94,7 @@ fn generate_buffer_type_declaration(module: &SPV::CleanSpvReflectShaderModule) -
             let members: Vec<_> = blockVar.type_description.members
                 .iter()
                 .map(|member| {
-                    format!("    {} {};", getType(&member), member.struct_member_name, )
+                    format!("    {} {}{};", getType(&member), member.struct_member_name, getArrayModifier(&member))
                 })
                 .collect();
             format!("\n  struct {} {{\n{}\n  }};", blockVar.type_description.type_name, members.join("\n"))
