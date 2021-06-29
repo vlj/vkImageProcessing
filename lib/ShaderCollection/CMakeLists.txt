@@ -30,6 +30,7 @@ compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/averagingISqI.glsl ${CMAK
 compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/meanAandBPass1.glsl ${CMAKE_CURRENT_BINARY_DIR}/meanAandBPass1.h)
 compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/meanAandBPass2.glsl ${CMAKE_CURRENT_BINARY_DIR}/meanAandBPass2.h)
 compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/guidedFilterFinal.glsl ${CMAKE_CURRENT_BINARY_DIR}/guidedFilterFinal.h)
+compile_shader(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/test_pushconstant.glsl ${CMAKE_CURRENT_BINARY_DIR}/test_pushconstant.h)
 
 add_library(ShaderCollection STATIC
     include/ShadersCollection.h
@@ -53,6 +54,8 @@ add_library(ShaderCollection STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/meanAandBPass1.h
     ${CMAKE_CURRENT_BINARY_DIR}/meanAandBPass2.h
     ${CMAKE_CURRENT_BINARY_DIR}/guidedFilterFinal.h
+    ${CMAKE_CURRENT_BINARY_DIR}/ssbo_filter.h
+    ${CMAKE_CURRENT_BINARY_DIR}/test_pushconstant.h
     
     "include/generated/test_average_h_spv.cpp"
     "include/generated/verticalSumation_h_spv.cpp"
